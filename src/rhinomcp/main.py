@@ -1,4 +1,4 @@
-from src.server import main as server_main
+from rhinomcp.server import main as server_main
 
 def main():
     """Entry point for the rhinomcp package"""

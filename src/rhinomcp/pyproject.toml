@@ -18,14 +18,11 @@ dependencies = [
 ]
 
 [project.scripts]
-rhinomcp = "src.server:main"
+rhinomcp = "rhinomcp.main:main"
 
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools]
-package-dir = {"" = "src"}
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project.urls]
 "Homepage" = "https://github.com/jingcheng-chen/rhinomcp"
