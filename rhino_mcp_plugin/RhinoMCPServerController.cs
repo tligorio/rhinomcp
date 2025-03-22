@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Rhino;
 
-namespace rhino_mcp
+namespace RhinoMCPPlugin
 {
     class RhinoMCPServerController
     {

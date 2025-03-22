@@ -1,7 +1,7 @@
 ﻿using System;
 using Rhino;
 
-namespace rhino_mcp
+namespace RhinoMCPPlugin
 {
     ///<summary>
     /// <para>Every RhinoCommon .rhp assembly must have one and only one PlugIn-derived

@@ -18,7 +18,7 @@ using System.Text.Json;
 using Rhino.DocObjects;
 using JsonException = Newtonsoft.Json.JsonException;
 
-namespace rhino_mcp
+namespace RhinoMCPPlugin
 {
     public class RhinoMCPServer
     {

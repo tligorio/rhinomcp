@@ -11,7 +11,7 @@ using Microsoft.Extensions.Hosting;
 using System.ComponentModel;
 using System.Threading.Tasks;
 
-namespace rhino_mcp
+namespace RhinoMCPPlugin
 {
     public class RhinoMCPStartCommand : Command
     {
