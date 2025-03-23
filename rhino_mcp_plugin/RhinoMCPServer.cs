@@ -17,7 +17,9 @@ using Newtonsoft.Json.Linq;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Text.Json;
 using Rhino.DocObjects;
+using rhinomcp.Serializers;
 using JsonException = Newtonsoft.Json.JsonException;
+using Eto.Forms;
 
 namespace RhinoMCPPlugin
 {
@@ -368,30 +370,8 @@ namespace RhinoMCPPlugin
             foreach (var docObject in doc.Objects)
             {
                 if (count >= 10) break;
-                var objInfo = new JObject
-                {
-                    ["id"] = docObject.Id.ToString(),
-                    ["name"] = docObject.Name ?? "(unnamed)",
-                    ["type"] = docObject.ObjectType.ToString(),
-                    ["layer"] = doc.Layers[docObject.Attributes.LayerIndex].Name,
-                    ["material"] = docObject.Attributes.MaterialIndex.ToString(),
-                    ["color"] = docObject.Attributes.ObjectColor.ToString()
-                };
                 
-                // Add location data if applicable
-                if (docObject.Geometry is GeometryBase geometry)
-                {
-                    BoundingBox bbox = geometry.GetBoundingBox(true);
-                    Point3d center = bbox.Center;
-
-                    objInfo["location"] = new JArray
-                    {
-                        Math.Round(center.X, 2),
-                        Math.Round(center.Y, 2),
-                        Math.Round(center.Z, 2)
-                    };
-                }
-                objectData.Add(objInfo);
+                objectData.Add(Serializer.RhinoObject(docObject));
                 count++;
             }
 
@@ -531,54 +511,17 @@ namespace RhinoMCPPlugin
         {
             var obj = getObjectByIdOrName(parameters);
 
-            var result = new JObject
-            {
-                ["id"] = obj.Id.ToString(),
-                ["name"] = obj.Name ?? "(unnamed)",
-                ["type"] = obj.ObjectType.ToString(),
-                ["layer"] = obj.Attributes.LayerIndex.ToString()
-            };
-
-            // Add geometry-specific information
-            if (obj.Geometry != null)
-            {
-                BoundingBox bbox = obj.Geometry.GetBoundingBox(true);
-                Point3d center = bbox.Center;
-
-                result["location"] = new JArray
-                {
-                    Math.Round(center.X, 2),
-                    Math.Round(center.Y, 2),
-                    Math.Round(center.Z, 2)
-                };
-
-                result["bounding_box"] = new JArray
-                {
-                    new JArray { bbox.Min.X, bbox.Min.Y, bbox.Min.Z },
-                    new JArray { bbox.Max.X, bbox.Max.Y, bbox.Max.Z }
-                };
-            }
-
-            return result;
+            return Serializer.RhinoObject(obj);
         }
 
         private JObject GetSelectedObjectsInfo(JObject parameters)
         {
             var doc = RhinoDoc.ActiveDoc;
             var selectedObjs = doc.Objects.GetSelectedObjects(false, false);
-            var result = new JArray();
-            foreach (var obj in selectedObjs)
-            {
-                var objInfo = new JObject
-                {
-                    ["id"] = obj.Id.ToString(),
-                    ["name"] = obj.Name ?? "(unnamed)",
-                    ["type"] = obj.ObjectType.ToString(),
-                    ["layer"] = obj.Attributes.LayerIndex.ToString()
-                };
-                result.Add(objInfo);
-            }
 
+            var result = new JArray();
+            foreach (var obj in selectedObjs) result.Add(Serializer.RhinoObject(obj));
+            
             return new JObject
             {
                 ["selected_objects"] = result
@@ -598,9 +541,10 @@ namespace RhinoMCPPlugin
             else if (!string.IsNullOrEmpty(objectName))
             {
                 // we assume there's only one of the object with the given name
-                var objs = doc.Objects.GetObjectList(new ObjectEnumeratorSettings() { NameFilter = objectName });
-                if (objs != null && objs.Count() > 1) throw new InvalidOperationException($"Multiple objects with name {objectName} found.");
-                obj = objs.FirstOrDefault();
+                var objs = doc.Objects.GetObjectList(new ObjectEnumeratorSettings() { NameFilter = objectName }).ToList();
+                if (objs == null) throw new InvalidOperationException($"Object with name {objectName} not found.");
+                if (objs.Count > 1) throw new InvalidOperationException($"Multiple objects with name {objectName} found.");
+                obj = objs[0];
             }
 
             if (obj == null)
@@ -633,25 +577,25 @@ namespace RhinoMCPPlugin
         {
             var doc = RhinoDoc.ActiveDoc;
             var obj = getObjectByIdOrName(parameters);
+            var geometry = obj.Geometry;
+            var xform = Transform.Identity;
 
             // Handle different modifications based on parameters
-            bool modified = false;
+            bool attributesModified = false;
+            bool geometryModified = false;
 
             // Change name if provided
-            if (parameters["name"] != null)
+            if (parameters["new_name"] != null)
             {
-                string name = parameters["name"].ToString();
+                string name = parameters["new_name"].ToString();
                 obj.Attributes.Name = name;
-                modified = true;
+                attributesModified = true;
             }
 
             // Change location if provided
             if (parameters["location"] != null && obj.Geometry != null)
             {
                 double[] location = parameters["location"].ToObject<double[]>();
-
-                // Get the current geometry
-                var geometry = obj.Geometry;
 
                 // Calculate the move transformation
                 BoundingBox bbox = geometry.GetBoundingBox(true);
@@ -660,10 +604,8 @@ namespace RhinoMCPPlugin
                 Vector3d moveVector = target - center;
 
                 // Apply the transformation
-                Transform moveTransform = Transform.Translation(moveVector);
-                geometry.Transform(moveTransform);
-
-                modified = true;
+                xform *= Transform.Translation(moveVector);
+                geometryModified = true;
             }
 
             // Apply scale if provided
@@ -671,28 +613,22 @@ namespace RhinoMCPPlugin
             {
                 double[] scale = parameters["scale"].ToObject<double[]>();
 
-                // Get the current geometry
-                var geometry = obj.Geometry;
-
                 // Calculate the center for scaling
                 BoundingBox bbox = geometry.GetBoundingBox(true);
                 Point3d center = bbox.Center;
+                Plane plane = Plane.WorldXY;
+                plane.Origin = center;
 
                 // Create scale transformation
-                Transform scaleTransform = Transform.Scale(center, scale[0]);
-                geometry.Transform(scaleTransform);
-
-                // Update the object
-                modified = true;
+                Transform scaleTransform = Transform.Scale(plane, scale[0], scale[1], scale[2]);
+                xform *= scaleTransform;
+                geometryModified = true;
             }
 
             // Apply rotation if provided
             if (parameters["rotation"] != null && obj.Geometry != null)
             {
                 double[] rotation = parameters["rotation"].ToObject<double[]>();
-
-                // Get the current geometry
-                var geometry = obj.Geometry;
 
                 // Calculate the center for rotation
                 BoundingBox bbox = geometry.GetBoundingBox(true);
@@ -704,21 +640,28 @@ namespace RhinoMCPPlugin
                 Transform rotZ = Transform.Rotation(rotation[2], Vector3d.ZAxis, center);
 
                 // Apply transformations
-                geometry.Transform(rotX);
-                geometry.Transform(rotY);
-                geometry.Transform(rotZ);
+                xform *= rotX;
+                xform *= rotY;
+                xform *= rotZ;
 
                 // Update the object
-                modified = true;
+                geometryModified = true;
             }
 
-            if (modified)
+            if (attributesModified)
             {
                 // Update the object attributes if needed
                 doc.Objects.ModifyAttributes(obj, obj.Attributes, true);
-                // Update views
-                doc.Views.Redraw();
             }
+
+            if (geometryModified)
+            {
+                // Update the object geometry if needed
+                doc.Objects.Transform(obj, xform, true);
+            }
+
+            // Update views
+            doc.Views.Redraw();
 
             return GetObjectInfo(new JObject { ["id"] = obj.Id });
         }

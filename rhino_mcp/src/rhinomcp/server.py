@@ -231,25 +231,26 @@ def get_document_info(ctx: Context) -> str:
         return f"Error getting document info: {str(e)}"
 
 @mcp.tool()
-def get_object_info(ctx: Context, object_id: str = None, object_name: str = None) -> str:
+def get_object_info(ctx: Context, id: str = None, name: str = None) -> str:
     """
     Get detailed information about a specific object in the Rhino document.
     You can either provide the id or the object_name of the object to get information about.
     If both are provided, the id will be used.
     
     Parameters:
-    - object_id: The id of the object to get information about
-    - object_name: The name of the object to get information about
+    - id: The id of the object to get information about
+    - name: The name of the object to get information about
     """
     try:
         rhino = get_rhino_connection()
-        result = rhino.send_command("get_object_info", {"id": object_id, "name": object_name})
+        result = rhino.send_command("get_object_info", {"id": id, "name": name})
         
         # Just return the JSON representation of what Rhino sent us
         return json.dumps(result, indent=2)
     except Exception as e:
         logger.error(f"Error getting object info from Rhino: {str(e)}")
         return f"Error getting object info: {str(e)}"
+
 @mcp.tool()
 def get_selected_objects_info(ctx: Context) -> str:
     """Get detailed information about the currently selected objects in Rhino"""
@@ -350,7 +351,9 @@ def create_object(
 @mcp.tool()
 def modify_object(
     ctx: Context,
-    name: str,
+    id: str = None,
+    name: str = None,
+    new_name: str = None,
     location: List[float] = None,
     rotation: List[float] = None,
     scale: List[float] = None,
@@ -360,7 +363,9 @@ def modify_object(
     Modify an existing object in the Rhino document.
     
     Parameters:
-    - name: Name of the object to modify
+    - id: The id of the object to modify
+    - name: The name of the object to modify
+    - new_name: Optional new name for the object
     - location: Optional [x, y, z] location coordinates
     - rotation: Optional [x, y, z] rotation in radians
     - scale: Optional [x, y, z] scale factors
@@ -370,8 +375,10 @@ def modify_object(
         # Get the global connection
         rhino = get_rhino_connection()
         
-        params = {"name": name}
+        params = {"id": id, "name": name}
         
+        if new_name is not None:
+            params["new_name"] = new_name
         if location is not None:
             params["location"] = location
         if rotation is not None:
@@ -388,19 +395,19 @@ def modify_object(
         return f"Error modifying object: {str(e)}"
 
 @mcp.tool()
-def delete_object(ctx: Context, object_id: str = None, object_name: str = None) -> str:
+def delete_object(ctx: Context, id: str = None, name: str = None) -> str:
     """
     Delete an object from the Rhino document.
     
     Parameters:
-    - object_id: The id of the object to delete
-    - object_name: The name of the object to delete
+    - id: The id of the object to delete
+    - name: The name of the object to delete
     """
     try:
         # Get the global connection
         rhino = get_rhino_connection()
         
-        result = rhino.send_command("delete_object", {"id": object_id, "name": object_name})
+        result = rhino.send_command("delete_object", {"id": id, "name": name})
         return f"Deleted object: {result['name']}"
     except Exception as e:
         logger.error(f"Error deleting object: {str(e)}")
