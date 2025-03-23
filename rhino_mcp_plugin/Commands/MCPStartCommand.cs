@@ -8,11 +8,11 @@ using Rhino.Input.Custom;
 using System.ComponentModel;
 using System.Threading.Tasks;
 
-namespace RhinoMCPPlugin
+namespace RhinoMCPPlugin.Commands
 {
-    public class RhinoMCPStartCommand : Command
+    public class MCPStartCommand : Command
     {
-        public RhinoMCPStartCommand()
+        public MCPStartCommand()
         {
             // Rhino only creates one instance of each command class defined in a
             // plug-in, so it is safe to store a refence in a static property.
@@ -20,11 +20,11 @@ namespace RhinoMCPPlugin
         }
 
         ///<summary>The only instance of this command.</summary>
-        public static RhinoMCPStartCommand Instance { get; private set; }
+        public static MCPStartCommand Instance { get; private set; }
 
         
 
-        public override string EnglishName => "RhinoMCPStart";
+        public override string EnglishName => "mcpstart";
 
         protected override Result RunCommand(RhinoDoc doc, RunMode mode)
         {

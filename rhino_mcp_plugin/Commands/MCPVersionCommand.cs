@@ -8,11 +8,11 @@ using Rhino.Input.Custom;
 using System.ComponentModel;
 using System.Threading.Tasks;
 
-namespace RhinoMCPPlugin
+namespace RhinoMCPPlugin.Commands
 {
-    public class RhinoMCPStopCommand : Command
+    public class MCPVersionCommand : Command
     {
-        public RhinoMCPStopCommand()
+        public MCPVersionCommand()
         {
             // Rhino only creates one instance of each command class defined in a
             // plug-in, so it is safe to store a refence in a static property.
@@ -20,15 +20,17 @@ namespace RhinoMCPPlugin
         }
 
         ///<summary>The only instance of this command.</summary>
-        public static RhinoMCPStopCommand Instance { get; private set; }
+        public static MCPVersionCommand Instance { get; private set; }
 
         
 
-        public override string EnglishName => "RhinoMCPStop";
+        public override string EnglishName => "mcpversion";
 
         protected override Result RunCommand(RhinoDoc doc, RunMode mode)
         {
-            RhinoMCPServerController.StopServer();
+            // get the version of the plugin from the properties of the project file
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            Rhino.RhinoApp.WriteLine($"RhinoMCPPlugin version {version}");
             return Result.Success;
         }
 

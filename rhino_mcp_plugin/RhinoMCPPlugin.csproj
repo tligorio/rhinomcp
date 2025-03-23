@@ -9,8 +9,8 @@
   
   <PropertyGroup>
     <!-- Specifies information for Assembly and Yak -->
-    <Version>1.0</Version>
-    <Title>RhinoMCPPlugin</Title>
+    <Version>0.1.1.1</Version>
+    <Title>rhinomcp</Title>
     <Company>Jingcheng Chen</Company>
     <Description>Rhino integration through the Model Context Protocol</Description>
   </PropertyGroup>
