@@ -8,8 +8,9 @@ RhinoMCP connects Rhino to Claude AI through the Model Context Protocol (MCP), a
 
 - **Two-way communication**: Connect Claude AI to Rhino through a socket-based server
 - **Object manipulation**: Create, modify, and delete 3D objects in Rhino
-- **Material control**: Apply and modify materials and colors
 - **Document inspection**: Get detailed information about the current Rhino document
+
+Note: Only some basic geometries are supported. It's a proof of concept at this stage but new geometries will be added in the future.
 
 ## Components
 
