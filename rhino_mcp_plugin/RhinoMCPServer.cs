@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -301,12 +302,12 @@ namespace RhinoMCPPlugin
             // Dictionary to map command types to handler methods
             Dictionary<string, Func<JObject, JObject>> handlers = new Dictionary<string, Func<JObject, JObject>>
             {
-                ["get_scene_info"] = GetSceneInfo,
+                ["get_document_info"] = GetDocumentInfo,
                 ["create_object"] = CreateObject,
                 ["get_object_info"] = GetObjectInfo,
+                ["get_selected_objects_info"] = GetSelectedObjectsInfo,
                 ["delete_object"] = DeleteObject,
                 ["modify_object"] = ModifyObject,
-                ["execute_code"] = ExecuteCode
                 // Add more handlers as needed
             };
 
@@ -343,34 +344,42 @@ namespace RhinoMCPPlugin
 
         #region Command Handlers
 
-        private JObject GetSceneInfo(JObject parameters)
+        private JObject GetDocumentInfo(JObject parameters)
         {
-            RhinoApp.WriteLine("Getting scene info...");
+            RhinoApp.WriteLine("Getting document info...");
 
             var doc = RhinoDoc.ActiveDoc;
-            var result = new JObject
+
+            var metaData = new JObject
             {
                 ["name"] = doc.Name,
-                ["object_count"] = doc.Objects.Count,
-                ["objects"] = new JArray()
+                ["date_created"] = doc.DateCreated,
+                ["date_modified"] = doc.DateLastEdited,
+                ["tolerance"] = doc.ModelAbsoluteTolerance,
+                ["angle_tolerance"] = doc.ModelAngleToleranceDegrees,
+                ["path"] = doc.Path,
+                ["units"] = doc.ModelUnitSystem.ToString(),
             };
+
+            var objectData = new JArray();
 
             // Collect minimal object information (limit to first 10 objects)
             int count = 0;
-            foreach (var obj in doc.Objects)
+            foreach (var docObject in doc.Objects)
             {
-                if (count >= 10)
-                    break;
-
+                if (count >= 10) break;
                 var objInfo = new JObject
                 {
-                    ["id"] = obj.Id.ToString(),
-                    ["name"] = obj.Name ?? "(unnamed)",
-                    ["type"] = obj.ObjectType.ToString()
+                    ["id"] = docObject.Id.ToString(),
+                    ["name"] = docObject.Name ?? "(unnamed)",
+                    ["type"] = docObject.ObjectType.ToString(),
+                    ["layer"] = doc.Layers[docObject.Attributes.LayerIndex].Name,
+                    ["material"] = docObject.Attributes.MaterialIndex.ToString(),
+                    ["color"] = docObject.Attributes.ObjectColor.ToString()
                 };
-
+                
                 // Add location data if applicable
-                if (obj.Geometry is GeometryBase geometry)
+                if (docObject.Geometry is GeometryBase geometry)
                 {
                     BoundingBox bbox = geometry.GetBoundingBox(true);
                     Point3d center = bbox.Center;
@@ -382,12 +391,37 @@ namespace RhinoMCPPlugin
                         Math.Round(center.Z, 2)
                     };
                 }
-
-                ((JArray)result["objects"]).Add(objInfo);
+                objectData.Add(objInfo);
                 count++;
             }
 
-            RhinoApp.WriteLine($"Scene info collected: {count} objects");
+            var layerData = new JArray();
+
+            count = 0;
+            foreach (var docLayer in doc.Layers)
+            {
+                layerData.Add(new JObject
+                {
+                    ["id"] = docLayer.Id.ToString(),
+                    ["name"] = docLayer.Name,
+                    ["color"] = docLayer.Color.ToString(),
+                    ["visible"] = docLayer.IsVisible,
+                    ["locked"] = docLayer.IsLocked
+                });
+                count++;
+            }
+
+
+            var result = new JObject
+            {
+                ["meta_data"] = metaData,
+                ["object_count"] = doc.Objects.Count,
+                ["objects"] = objectData,
+                ["layer_count"] = doc.Layers.Count,
+                ["layers"] = layerData
+            };
+
+            RhinoApp.WriteLine($"Document info collected: {count} objects");
             return result;
         }
 
@@ -495,15 +529,7 @@ namespace RhinoMCPPlugin
 
         private JObject GetObjectInfo(JObject parameters)
         {
-            string objectId = parameters["id"]?.ToString();
-            if (string.IsNullOrEmpty(objectId))
-                throw new ArgumentException("Object ID is required");
-
-            var doc = RhinoDoc.ActiveDoc;
-            var obj = doc.Objects.Find(new Guid(objectId));
-
-            if (obj == null)
-                throw new InvalidOperationException($"Object with ID {objectId} not found");
+            var obj = getObjectByIdOrName(parameters);
 
             var result = new JObject
             {
@@ -536,39 +562,77 @@ namespace RhinoMCPPlugin
             return result;
         }
 
-        private JObject DeleteObject(JObject parameters)
+        private JObject GetSelectedObjectsInfo(JObject parameters)
+        {
+            var doc = RhinoDoc.ActiveDoc;
+            var selectedObjs = doc.Objects.GetSelectedObjects(false, false);
+            var result = new JArray();
+            foreach (var obj in selectedObjs)
+            {
+                var objInfo = new JObject
+                {
+                    ["id"] = obj.Id.ToString(),
+                    ["name"] = obj.Name ?? "(unnamed)",
+                    ["type"] = obj.ObjectType.ToString(),
+                    ["layer"] = obj.Attributes.LayerIndex.ToString()
+                };
+                result.Add(objInfo);
+            }
+
+            return new JObject
+            {
+                ["selected_objects"] = result
+            };
+        }
+
+        private RhinoObject getObjectByIdOrName(JObject parameters)
         {
             string objectId = parameters["id"]?.ToString();
-            if (string.IsNullOrEmpty(objectId))
-                throw new ArgumentException("Object ID is required");
+            string objectName = parameters["name"]?.ToString();
 
             var doc = RhinoDoc.ActiveDoc;
-            bool success = doc.Objects.Delete(new Guid(objectId), true);
+            RhinoObject obj = null;
+
+            if (!string.IsNullOrEmpty(objectId))
+                obj = doc.Objects.Find(new Guid(objectId));
+            else if (!string.IsNullOrEmpty(objectName))
+            {
+                // we assume there's only one of the object with the given name
+                var objs = doc.Objects.GetObjectList(new ObjectEnumeratorSettings() { NameFilter = objectName });
+                if (objs != null && objs.Count() > 1) throw new InvalidOperationException($"Multiple objects with name {objectName} found.");
+                obj = objs.FirstOrDefault();
+            }
+
+            if (obj == null)
+                throw new InvalidOperationException($"Object with ID {objectId} not found");
+            return obj;
+        }
+
+        private JObject DeleteObject(JObject parameters)
+        {
+            var obj = getObjectByIdOrName(parameters);
+
+            var doc = RhinoDoc.ActiveDoc;
+            bool success = doc.Objects.Delete(obj.Id, true);
 
             if (!success)
-                throw new InvalidOperationException($"Failed to delete object with ID {objectId}");
+                throw new InvalidOperationException($"Failed to delete object with ID {obj.Id}");
 
             // Update views
             doc.Views.Redraw();
 
             return new JObject
             {
-                ["id"] = objectId,
+                ["id"] = obj.Id,
+                ["name"] = obj.Name,
                 ["deleted"] = true
             };
         }
 
         private JObject ModifyObject(JObject parameters)
         {
-            string objectId = parameters["id"]?.ToString();
-            if (string.IsNullOrEmpty(objectId))
-                throw new ArgumentException("Object ID is required");
-
             var doc = RhinoDoc.ActiveDoc;
-            var obj = doc.Objects.Find(new Guid(objectId));
-
-            if (obj == null)
-                throw new InvalidOperationException($"Object with ID {objectId} not found");
+            var obj = getObjectByIdOrName(parameters);
 
             // Handle different modifications based on parameters
             bool modified = false;
@@ -656,26 +720,7 @@ namespace RhinoMCPPlugin
                 doc.Views.Redraw();
             }
 
-            return GetObjectInfo(new JObject { ["id"] = objectId });
-        }
-
-        private JObject ExecuteCode(JObject parameters)
-        {
-            string code = parameters["code"]?.ToString();
-            if (string.IsNullOrEmpty(code))
-                throw new ArgumentException("Code is required");
-
-            // WARNING: Executing arbitrary code is a security risk
-            // In a production environment, you should implement strict sandboxing
-            // or avoid this feature entirely
-
-            RhinoApp.WriteLine("Executing custom code is not implemented for security reasons");
-
-            return new JObject
-            {
-                ["executed"] = false,
-                ["message"] = "Code execution is disabled for security reasons"
-            };
+            return GetObjectInfo(new JObject { ["id"] = obj.Id });
         }
 
         #endregion

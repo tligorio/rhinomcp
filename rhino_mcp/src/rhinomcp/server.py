@@ -200,28 +200,10 @@ mcp = FastMCP(
 
 # Global connection for resources (since resources can't access context)
 _rhino_connection = None
-_polyhaven_enabled = False  # Add this global variable
 
 def get_rhino_connection():
     """Get or create a persistent Rhino connection"""
-    global _rhino_connection, _polyhaven_enabled  # Add _polyhaven_enabled to globals
-    
-    # If we have an existing connection, check if it's still valid
-    if _rhino_connection is not None:
-        try:
-            # First check if PolyHaven is enabled by sending a ping command
-            result = _rhino_connection.send_command("get_polyhaven_status")
-            # Store the PolyHaven status globally
-            _polyhaven_enabled = result.get("enabled", False)
-            return _rhino_connection
-        except Exception as e:
-            # Connection is dead, close it and create a new one
-            logger.warning(f"Existing connection is no longer valid: {str(e)}")
-            try:
-                _rhino_connection.disconnect()
-            except:
-                pass
-            _rhino_connection = None
+    global _rhino_connection
     
     # Create a new connection if needed
     if _rhino_connection is None:
@@ -236,36 +218,48 @@ def get_rhino_connection():
 
 
 @mcp.tool()
-def get_scene_info(ctx: Context) -> str:
-    """Get detailed information about the current Rhino scene"""
+def get_document_info(ctx: Context) -> str:
+    """Get detailed information about the current Rhino document"""
     try:
         rhino = get_rhino_connection()
-        result = rhino.send_command("get_scene_info")
+        result = rhino.send_command("get_document_info")
         
         # Just return the JSON representation of what Rhino sent us
         return json.dumps(result, indent=2)
     except Exception as e:
-        logger.error(f"Error getting scene info from Rhino: {str(e)}")
-        return f"Error getting scene info: {str(e)}"
+        logger.error(f"Error getting document info from Rhino: {str(e)}")
+        return f"Error getting document info: {str(e)}"
 
 @mcp.tool()
-def get_object_info(ctx: Context, object_name: str) -> str:
+def get_object_info(ctx: Context, object_id: str = None, object_name: str = None) -> str:
     """
-    Get detailed information about a specific object in the Rhino scene.
+    Get detailed information about a specific object in the Rhino document.
+    You can either provide the id or the object_name of the object to get information about.
+    If both are provided, the id will be used.
     
     Parameters:
+    - object_id: The id of the object to get information about
     - object_name: The name of the object to get information about
     """
     try:
         rhino = get_rhino_connection()
-        result = rhino.send_command("get_object_info", {"name": object_name})
+        result = rhino.send_command("get_object_info", {"id": object_id, "name": object_name})
         
         # Just return the JSON representation of what Rhino sent us
         return json.dumps(result, indent=2)
     except Exception as e:
         logger.error(f"Error getting object info from Rhino: {str(e)}")
         return f"Error getting object info: {str(e)}"
-
+@mcp.tool()
+def get_selected_objects_info(ctx: Context) -> str:
+    """Get detailed information about the currently selected objects in Rhino"""
+    try:
+        rhino = get_rhino_connection()
+        result = rhino.send_command("get_selected_objects_info")
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        logger.error(f"Error getting selected objects from Rhino: {str(e)}")
+        return f"Error getting selected objects: {str(e)}"
 
 
 @mcp.tool()
@@ -288,7 +282,7 @@ def create_object(
     generate_uvs: bool = True
 ) -> str:
     """
-    Create a new object in the Rhino scene.
+    Create a new object in the Rhino document.
     
     Parameters:
     - type: Object type (CUBE, SPHERE, CYLINDER, PLANE, CONE, TORUS, EMPTY, CAMERA, LIGHT)
@@ -363,7 +357,7 @@ def modify_object(
     visible: bool = None
 ) -> str:
     """
-    Modify an existing object in the Rhino scene.
+    Modify an existing object in the Rhino document.
     
     Parameters:
     - name: Name of the object to modify
@@ -394,19 +388,20 @@ def modify_object(
         return f"Error modifying object: {str(e)}"
 
 @mcp.tool()
-def delete_object(ctx: Context, name: str) -> str:
+def delete_object(ctx: Context, object_id: str = None, object_name: str = None) -> str:
     """
-    Delete an object from the Rhino scene.
+    Delete an object from the Rhino document.
     
     Parameters:
-    - name: Name of the object to delete
+    - object_id: The id of the object to delete
+    - object_name: The name of the object to delete
     """
     try:
         # Get the global connection
         rhino = get_rhino_connection()
         
-        result = rhino.send_command("delete_object", {"name": name})
-        return f"Deleted object: {name}"
+        result = rhino.send_command("delete_object", {"id": object_id, "name": object_name})
+        return f"Deleted object: {result['name']}"
     except Exception as e:
         logger.error(f"Error deleting object: {str(e)}")
         return f"Error deleting object: {str(e)}"
@@ -416,9 +411,9 @@ def asset_creation_strategy() -> str:
     """Defines the preferred strategy for creating assets in Rhino"""
     return """When creating 3D content in Rhino, always start by checking if integrations are available:
 
-    0. Before anything, always check the scene from get_scene_info()
+    0. Before anything, always check the document from get_document_info()
     1. Use the method create_object() for basic primitives (CUBE, SPHERE, etc.)
-    2. When including an object into scene, ALWAYS make sure that the name of the object is meanful.
+    2. When including an object into document, ALWAYS make sure that the name of the object is meanful.
     3. After giving the tool location/scale/rotation information (via create_object() and modify_object()),
        double check the related object's location, scale, rotation, and world_bounding_box using get_object_info(),
        so that the object is in the desired location.
