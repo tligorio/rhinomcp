@@ -262,6 +262,58 @@ def get_selected_objects_info(ctx: Context) -> str:
         logger.error(f"Error getting selected objects from Rhino: {str(e)}")
         return f"Error getting selected objects: {str(e)}"
 
+
+@mcp.tool()
+def create_objects(
+    ctx: Context,
+    objects: List[Dict[str, Any]]
+) -> str:
+    """
+    Create multiple objects at once in the Rhino document
+    
+    Parameters:
+    - objects: A list of dictionaries, each containing the parameters for a single object
+
+    Each object should have the following keys:
+    - type: Object type ("BOX")
+    - name: Optional name for the object
+    - color: Optional [r, g, b] color values (0-255) for the object
+    - params: Type-specific parameters dictionary (see documentation for each type)
+    - translation: Optional [x, y, z] translation vector
+    - rotation: Optional [x, y, z] rotation in radians
+    - scale: Optional [x, y, z] scale factors
+
+    Returns:
+    A message indicating the created objects.
+    
+    Examples of params:
+    [
+        {
+            "type": "BOX",
+            "name": "Box 1",
+            "color": [255, 0, 0],
+            "params": {"width": 1.0, "length": 1.0, "height": 1.0},
+            "translation": [0, 0, 0],
+            "rotation": [0, 0, 0],
+            "scale": [1, 1, 1]
+        }
+    ]
+    """
+    try:
+        # Get the global connection
+        rhino = get_rhino_connection()
+        command_params = {}
+        for obj in objects:
+            command_params[obj["name"]] = obj
+        result = rhino.send_command("create_objects", command_params)
+  
+        
+        return f"Created {len(result)} objects"
+    except Exception as e:
+        logger.error(f"Error creating object: {str(e)}")
+        return f"Error creating object: {str(e)}"
+
+
 @mcp.tool()
 def create_object(
     ctx: Context,
@@ -409,7 +461,7 @@ def asset_creation_strategy() -> str:
     return """When creating 3D content in Rhino, always start by checking if integrations are available:
 
     0. Before anything, always check the document from get_document_info()
-    1. Use the method create_object() as entry point instead of directly using primitive type creation commands (create_box, etc.)
+    1. Please always use the method create_objects() to create multiple objects at once.
     2. When including an object into document, ALWAYS make sure that the name of the object is meanful.
     3. After giving the tool translation/rotation/scale information (via create_object() and modify_object()),
        double check the related object's translation, rotation, scale, and world_bounding_box using get_object_info(),

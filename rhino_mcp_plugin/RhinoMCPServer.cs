@@ -310,6 +310,7 @@ namespace RhinoMCPPlugin
             {
                 ["get_document_info"] = this.handler.GetDocumentInfo,
                 ["create_object"] = this.handler.CreateObject,
+                ["create_objects"] = this.handler.CreateObjects,
                 ["get_object_info"] = this.handler.GetObjectInfo,
                 ["get_selected_objects_info"] = this.handler.GetSelectedObjectsInfo,
                 ["delete_object"] = this.handler.DeleteObject,
