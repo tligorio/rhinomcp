@@ -1,6 +1,8 @@
 using System;
+using System.Drawing;
 using Newtonsoft.Json.Linq;
 using Rhino;
+using Rhino.DocObjects;
 using Rhino.Geometry;
 using rhinomcp.Serializers;
 
@@ -27,59 +29,33 @@ public partial class RhinoMCPFunctions
                 attributesModified = true;
             }
 
-            // Change location if provided
-            if (parameters["location"] != null && obj.Geometry != null)
+            // Change color if provided
+            if (parameters["new_color"] != null)
             {
-                double[] location = parameters["location"].ToObject<double[]>();
+                int[] color = parameters["new_color"]?.ToObject<int[]>() ?? new [] { 0, 0, 0 };
+                obj.Attributes.ObjectColor = Color.FromArgb(color[0], color[1], color[2]);
+                obj.Attributes.ColorSource = ObjectColorSource.ColorFromObject;
+                attributesModified = true;
+            }
 
-                // Calculate the move transformation
-                BoundingBox bbox = geometry.GetBoundingBox(true);
-                Point3d center = bbox.Center;
-                Point3d target = new Point3d(location[0], location[1], location[2]);
-                Vector3d moveVector = target - center;
-
-                // Apply the transformation
-                xform *= Transform.Translation(moveVector);
+            // Change translation if provided
+            if (parameters["translation"] != null)
+            {
+                xform *= applyTranslation(parameters, geometry);
                 geometryModified = true;
             }
 
             // Apply scale if provided
-            if (parameters["scale"] != null && obj.Geometry != null)
+            if (parameters["scale"] != null)
             {
-                double[] scale = parameters["scale"].ToObject<double[]>();
-
-                // Calculate the center for scaling
-                BoundingBox bbox = geometry.GetBoundingBox(true);
-                Point3d center = bbox.Center;
-                Plane plane = Plane.WorldXY;
-                plane.Origin = center;
-
-                // Create scale transformation
-                Transform scaleTransform = Transform.Scale(plane, scale[0], scale[1], scale[2]);
-                xform *= scaleTransform;
+                xform *= applyScale(parameters, geometry);
                 geometryModified = true;
             }
 
             // Apply rotation if provided
-            if (parameters["rotation"] != null && obj.Geometry != null)
+            if (parameters["rotation"] != null)
             {
-                double[] rotation = parameters["rotation"].ToObject<double[]>();
-
-                // Calculate the center for rotation
-                BoundingBox bbox = geometry.GetBoundingBox(true);
-                Point3d center = bbox.Center;
-
-                // Create rotation transformations (in radians)
-                Transform rotX = Transform.Rotation(rotation[0], Vector3d.XAxis, center);
-                Transform rotY = Transform.Rotation(rotation[1], Vector3d.YAxis, center);
-                Transform rotZ = Transform.Rotation(rotation[2], Vector3d.ZAxis, center);
-
-                // Apply transformations
-                xform *= rotX;
-                xform *= rotY;
-                xform *= rotZ;
-
-                // Update the object
+               xform *= applyRotation(parameters, geometry);
                 geometryModified = true;
             }
 

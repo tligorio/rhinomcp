@@ -262,91 +262,77 @@ def get_selected_objects_info(ctx: Context) -> str:
         logger.error(f"Error getting selected objects from Rhino: {str(e)}")
         return f"Error getting selected objects: {str(e)}"
 
-
 @mcp.tool()
 def create_object(
     ctx: Context,
-    type: str = "CUBE",
+    type: str = "BOX",
     name: str = None,
-    location: List[float] = None,
+    color: List[int] = None,
+    params: Dict[str, Any] = None,
+    translation: List[float] = None,
     rotation: List[float] = None,
     scale: List[float] = None,
-    # Torus-specific parameters
-    align: str = "WORLD",
-    major_segments: int = 48,
-    minor_segments: int = 12,
-    mode: str = "MAJOR_MINOR",
-    major_radius: float = 1.0,
-    minor_radius: float = 0.25,
-    abso_major_rad: float = 1.25,
-    abso_minor_rad: float = 0.75,
-    generate_uvs: bool = True
 ) -> str:
     """
     Create a new object in the Rhino document.
     
     Parameters:
-    - type: Object type (CUBE, SPHERE, CYLINDER, PLANE, CONE, TORUS, EMPTY, CAMERA, LIGHT)
+    - type: Object type ("BOX")
     - name: Optional name for the object
-    - location: Optional [x, y, z] location coordinates
+    - color: Optional [r, g, b] color values (0-255) for the object
+    - params: Type-specific parameters dictionary (see documentation for each type)
+    - translation: Optional [x, y, z] translation vector
     - rotation: Optional [x, y, z] rotation in radians
-    - scale: Optional [x, y, z] scale factors (not used for TORUS)
-    
-    Torus-specific parameters (only used when type == "TORUS"):
-    - align: How to align the torus ('WORLD', 'VIEW', or 'CURSOR')
-    - major_segments: Number of segments for the main ring
-    - minor_segments: Number of segments for the cross-section
-    - mode: Dimension mode ('MAJOR_MINOR' or 'EXT_INT')
-    - major_radius: Radius from the origin to the center of the cross sections
-    - minor_radius: Radius of the torus' cross section
-    - abso_major_rad: Total exterior radius of the torus
-    - abso_minor_rad: Total interior radius of the torus
-    - generate_uvs: Whether to generate a default UV map
+    - scale: Optional [x, y, z] scale factors
+
+    The params dictionary is type-specific.
+    For BOX, the params dictionary should contain the following keys:
+    - width: Width of the box along X axis of the object
+    - length: Length of the box along Y axis of the object
+    - height: Height of the box along Z axis of the object
     
     Returns:
     A message indicating the created object name.
+    
+    Examples of params:
+    - BOX: {"width": 1.0, "length": 1.0, "height": 1.0}
     """
     try:
         # Get the global connection
         rhino = get_rhino_connection()
-        
         # Set default values for missing parameters
-        loc = location or [0, 0, 0]
+        trans = translation or [0, 0, 0]
         rot = rotation or [0, 0, 0]
         sc = scale or [1, 1, 1]
         
-        params = {
+        command_params = {
             "type": type,
-            "location": loc,
+            "translation": trans,
             "rotation": rot,
+            "scale": sc
         }
-        
-        if name:
-            params["name"] = name
 
-        if type == "TORUS":
-            # For torus, the scale is not used.
-            params.update({
-                "align": align,
-                "major_segments": major_segments,
-                "minor_segments": minor_segments,
-                "mode": mode,
-                "major_radius": major_radius,
-                "minor_radius": minor_radius,
-                "abso_major_rad": abso_major_rad,
-                "abso_minor_rad": abso_minor_rad,
-                "generate_uvs": generate_uvs
-            })
-            result = rhino.send_command("create_object", params)
-            return f"Created {type} object: {result['name']}"
-        else:
-            # For non-torus objects, include scale
-            params["scale"] = sc
-            result = rhino.send_command("create_object", params)
-            return f"Created {type} object: {result['name']}"
+        if name: command_params["name"] = name
+        if color: command_params["color"] = color
+
+        # Create the object
+        result = {}
+        if (type == "BOX"):
+            command_params["width"] = params["width"]
+            command_params["length"] = params["length"]
+            command_params["height"] = params["height"]
+            result = rhino.send_command("create_object", command_params)
+        # elif (type == "SPHERE"):
+        #     result = rhino.send_command("create_sphere", command_params)
+        # elif (type == "CYLINDER"):
+        #     result = rhino.send_command("create_cylinder", command_params)
+            
+        
+        return f"Created {type} object: {result['name']}"
     except Exception as e:
         logger.error(f"Error creating object: {str(e)}")
         return f"Error creating object: {str(e)}"
+ 
 
 @mcp.tool()
 def modify_object(
@@ -354,7 +340,8 @@ def modify_object(
     id: str = None,
     name: str = None,
     new_name: str = None,
-    location: List[float] = None,
+    new_color: List[int] = None,
+    translation: List[float] = None,
     rotation: List[float] = None,
     scale: List[float] = None,
     visible: bool = None
@@ -366,7 +353,8 @@ def modify_object(
     - id: The id of the object to modify
     - name: The name of the object to modify
     - new_name: Optional new name for the object
-    - location: Optional [x, y, z] location coordinates
+    - new_color: Optional [r, g, b] color values (0-255) for the object
+    - translation: Optional [x, y, z] translation vector
     - rotation: Optional [x, y, z] rotation in radians
     - scale: Optional [x, y, z] scale factors
     - visible: Optional boolean to set visibility
@@ -379,8 +367,10 @@ def modify_object(
         
         if new_name is not None:
             params["new_name"] = new_name
-        if location is not None:
-            params["location"] = location
+        if new_color is not None:
+            params["new_color"] = new_color
+        if translation is not None:
+            params["translation"] = translation
         if rotation is not None:
             params["rotation"] = rotation
         if scale is not None:
@@ -419,11 +409,11 @@ def asset_creation_strategy() -> str:
     return """When creating 3D content in Rhino, always start by checking if integrations are available:
 
     0. Before anything, always check the document from get_document_info()
-    1. Use the method create_object() for basic primitives (CUBE, SPHERE, etc.)
+    1. Use the method create_object() as entry point instead of directly using primitive type creation commands (create_box, etc.)
     2. When including an object into document, ALWAYS make sure that the name of the object is meanful.
-    3. After giving the tool location/scale/rotation information (via create_object() and modify_object()),
-       double check the related object's location, scale, rotation, and world_bounding_box using get_object_info(),
-       so that the object is in the desired location.
+    3. After giving the tool translation/rotation/scale information (via create_object() and modify_object()),
+       double check the related object's translation, rotation, scale, and world_bounding_box using get_object_info(),
+       so that the object is in the desired position.
     """
 
 # Main execution
