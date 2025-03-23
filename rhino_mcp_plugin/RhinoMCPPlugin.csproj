@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	
   <PropertyGroup>
-    <TargetFrameworks>net8.0</TargetFrameworks>
+    <TargetFrameworks>net7.0</TargetFrameworks>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <TargetExt>.rhp</TargetExt>
     <NoWarn>NU1701</NoWarn>
@@ -18,10 +18,6 @@
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="RhinoCommon" Version="8.17.25066.7001" ExcludeAssets="runtime" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <ProjectReference Include="..\csharp-sdk\src\ModelContextProtocol\ModelContextProtocol.csproj" />
   </ItemGroup>
   
 </Project>

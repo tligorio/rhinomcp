@@ -4,8 +4,6 @@ VisualStudioVersion = 17.13.35806.99
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RhinoMCPPlugin", "RhinoMCPPlugin.csproj", "{70E85AA5-1E98-4F4E-B8B5-BAF50E01DCDC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModelContextProtocol", "..\csharp-sdk\src\ModelContextProtocol\ModelContextProtocol.csproj", "{BE5733B9-7932-7174-D668-DD5F271B271E}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -16,10 +14,6 @@ Global
 		{70E85AA5-1E98-4F4E-B8B5-BAF50E01DCDC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{70E85AA5-1E98-4F4E-B8B5-BAF50E01DCDC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{70E85AA5-1E98-4F4E-B8B5-BAF50E01DCDC}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BE5733B9-7932-7174-D668-DD5F271B271E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BE5733B9-7932-7174-D668-DD5F271B271E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BE5733B9-7932-7174-D668-DD5F271B271E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BE5733B9-7932-7174-D668-DD5F271B271E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

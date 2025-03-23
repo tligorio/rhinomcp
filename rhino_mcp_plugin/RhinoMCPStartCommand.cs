@@ -5,9 +5,6 @@ using Rhino.Commands;
 using Rhino.Geometry;
 using Rhino.Input;
 using Rhino.Input.Custom;
-using ModelContextProtocol;
-using ModelContextProtocol.Server;
-using Microsoft.Extensions.Hosting;
 using System.ComponentModel;
 using System.Threading.Tasks;
 
