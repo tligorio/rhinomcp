@@ -23,7 +23,7 @@ The system consists of two main components:
 
 ### Prerequisites
 
-- Rhino 7 or newer
+- Rhino 7 or newer (Works onWindows and Mac)
 - Python 3.10 or newer
 - uv package manager
 
