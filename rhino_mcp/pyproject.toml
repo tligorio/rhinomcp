@@ -1,6 +1,6 @@
 [project]
 name = "rhinomcp"
-version = "0.1.0"
+version = "0.1.1.1"
 description = "Rhino integration through the Model Context Protocol"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -18,11 +18,15 @@ dependencies = [
 ]
 
 [project.scripts]
-rhinomcp = "rhinomcp.main:main"
+rhinomcp = "rhinomcp.server:main"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
 
 [project.urls]
 "Homepage" = "https://github.com/jingcheng-chen/rhinomcp"
