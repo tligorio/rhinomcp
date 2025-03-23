@@ -19,5 +19,9 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="RhinoCommon" Version="8.17.25066.7001" ExcludeAssets="runtime" />
   </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <Exec Command="cp $(TargetDir)rhinomcp.rhp '/Applications/Rhino 8.app/Contents/PlugIns/'" />
+  </Target>
   
 </Project>
