@@ -2,7 +2,19 @@
 
 RhinoMCP connects Rhino to Claude AI through the Model Context Protocol (MCP), allowing Claude to directly interact with and control Rhino. This integration enables prompt assisted 3D modeling in Rhino 3D.
 
-![demo](assets/demo.jpg)
+## Demo
+
+### Demo 1
+
+This demo shows how to ask AI to create custom scripts and execute them in Rhino.
+
+[![demo1](https://img.youtube.com/vi/pi6dbqUuhI4/default.jpg)](https://youtu.be/pi6dbqUuhI4)
+
+### Demo 2
+
+This demo shows how AI can interact with Rhino in two directions.
+
+[![demo2](https://img.youtube.com/vi/NFOF_Pjp3qY/default.jpg)](https://youtu.be/NFOF_Pjp3qY)
 
 ## Features
 
@@ -10,7 +22,8 @@ RhinoMCP connects Rhino to Claude AI through the Model Context Protocol (MCP), a
 - **Object manipulation**: Create, modify, and delete 3D objects in Rhino
 - **Document inspection**: Get detailed information about the current Rhino document
 
-Note: Only some basic geometries are supported. It's a proof of concept at this stage but new geometries will be added in the future.
+> [!NOTE]  
+> So far the tool only supports creating Boxes or Spheres for proof of concept. More geometries will be added in the future.
 
 ## Components
 
