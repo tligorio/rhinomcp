@@ -1,1 +1,0 @@
-Please create a 5x5x5 boxes. their position are on a 5x5x5 grid. Grid size is 10. Box dimension vary from 1-5, starting with 1 at one corner and gradually ends to 5 at the opposite corner. They also have a gradient color based on their size. 

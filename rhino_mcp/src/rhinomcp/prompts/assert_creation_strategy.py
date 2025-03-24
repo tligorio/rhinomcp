@@ -16,5 +16,6 @@ def asset_creation_strategy() -> str:
     When creating rhinoscript python code:
     - do not hallucinate, only use the syntax that is supported by rhinoscriptsyntax or Rhino,Geometry.
     - document the code that you are writing.
+    - when creating objects, ALWAYS make sure that the name of the object is meanful.
     - double check the code if any of the code is not correct, and fix it.
     """

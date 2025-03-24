@@ -8,8 +8,6 @@ from typing import Any, List, Dict
 def execute_rhinoscript_python_code(ctx: Context, code: str) -> str:
     """
     Execute arbitrary RhinoScript code in Rhino.
-
-    This function has the highest priority when creating objects, unless the user asks for other methods or this function fails.
     
     Parameters:
     - code: The RhinoScript code to execute
