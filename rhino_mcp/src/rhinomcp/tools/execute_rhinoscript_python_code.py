@@ -15,6 +15,7 @@ def execute_rhinoscript_python_code(ctx: Context, code: str) -> str:
     - code: The RhinoScript code to execute
 
     References:
+
     AddBox(corners)
         Adds a box shaped polysurface to the document
     Parameters:
@@ -26,6 +27,22 @@ def execute_rhinoscript_python_code(ctx: Context, code: str) -> str:
         import rhinoscriptsyntax as rs
         box = rs.GetBox()
         if box: rs.AddBox(box)
+
+    AddSphere(center_or_plane, radius)
+        Add a spherical surface to the document
+    Parameters:
+        center_or_plane (point|plane): center point of the sphere. If a plane is input,
+        the origin of the plane will be the center of the sphere
+        radius (number): radius of the sphere in the current model units
+    Returns:
+        guid: identifier of the new object on success
+        None: on error
+    Example:
+        import rhinoscriptsyntax as rs
+        radius = 2
+        center = rs.GetPoint("Center of sphere")
+        if center: rs.AddSphere(center, radius)
+
 
     """
     try:
