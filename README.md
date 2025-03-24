@@ -8,13 +8,13 @@ RhinoMCP connects Rhino to Claude AI through the Model Context Protocol (MCP), a
 
 This demo shows how to ask AI to create custom scripts and execute them in Rhino.
 
-[![demo1](https://img.youtube.com/vi/pi6dbqUuhI4/default.jpg)](https://youtu.be/pi6dbqUuhI4)
+[![demo1](https://img.youtube.com/vi/pi6dbqUuhI4/maxresdefault.jpg)](https://youtu.be/pi6dbqUuhI4)
 
 ### Demo 2
 
 This demo shows how AI can interact with Rhino in two directions.
 
-[![demo2](https://img.youtube.com/vi/NFOF_Pjp3qY/default.jpg)](https://youtu.be/NFOF_Pjp3qY)
+[![demo2](https://img.youtube.com/vi/NFOF_Pjp3qY/maxresdefault.jpg)](https://youtu.be/NFOF_Pjp3qY)
 
 ## Features
 
