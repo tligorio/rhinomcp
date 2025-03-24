@@ -38,6 +38,15 @@ public partial class RhinoMCPFunctions
                     );
                     objectId = doc.Objects.AddBox(box);
                     break;
+                    
+                case "SPHERE":
+                    // parse radius
+                    double radius = parameters.SelectToken("params.radius")?.ToObject<double>() ?? 1;
+                    // Create sphere at origin with specified radius
+                    Sphere sphere = new Sphere(Point3d.Origin, radius);
+                    // Convert sphere to BREP for adding to document
+                    objectId = doc.Objects.AddBrep(sphere.ToBrep());
+                    break;
             }
             
             if (objectId == Guid.Empty)
