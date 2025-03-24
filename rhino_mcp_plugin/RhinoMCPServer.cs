@@ -315,6 +315,7 @@ namespace RhinoMCPPlugin
                 ["get_selected_objects_info"] = this.handler.GetSelectedObjectsInfo,
                 ["delete_object"] = this.handler.DeleteObject,
                 ["modify_object"] = this.handler.ModifyObject,
+                ["execute_rhinoscript_python_code"] = this.handler.ExecuteRhinoscript
                 // Add more handlers as needed
             };
 

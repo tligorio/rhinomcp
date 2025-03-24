@@ -10,7 +10,7 @@ def create_objects(
     objects: List[Dict[str, Any]]
 ) -> str:
     """
-    Create multiple objects at once in the Rhino document
+    Create multiple objects at once in the Rhino document.
     
     Parameters:
     - objects: A list of dictionaries, each containing the parameters for a single object
