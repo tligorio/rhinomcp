@@ -23,7 +23,8 @@ This demo shows how AI can interact with Rhino in two directions. Click the imag
 - **Document inspection**: Get detailed information about the current Rhino document
 
 > [!NOTE]  
-> So far the tool only supports creating Boxes or Spheres for proof of concept. More geometries will be added in the future.
+> So far the tool only supports creating primitive objects for proof of concept. More geometries will be added in the future.
+> Supported objects: Point, Line, Polyline, Curve, Box, Sphere
 
 ## Components
 
