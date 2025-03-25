@@ -15,7 +15,7 @@ def create_objects(
     Parameters:
     - objects: A list of dictionaries, each containing the parameters for a single object
 
-    Each object should have the following keys:
+    Each object should have the following values:
     - type: Object type ("BOX")
     - name: Optional name for the object
     - color: Optional [r, g, b] color values (0-255) for the object
@@ -34,6 +34,15 @@ def create_objects(
             "name": "Box 1",
             "color": [255, 0, 0],
             "params": {"width": 1.0, "length": 1.0, "height": 1.0},
+            "translation": [0, 0, 0],
+            "rotation": [0, 0, 0],
+            "scale": [1, 1, 1]
+        },
+        {
+            "type": "Sphere",
+            "name": "Sphere 1",
+            "color": [0, 255, 0],
+            "params": {"radius": 1.0},
             "translation": [0, 0, 0],
             "rotation": [0, 0, 0],
             "scale": [1, 1, 1]

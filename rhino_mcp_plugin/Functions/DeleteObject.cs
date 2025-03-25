@@ -9,9 +9,22 @@ public partial class RhinoMCPFunctions
 {
     public JObject DeleteObject(JObject parameters)
     {
+        var doc = RhinoDoc.ActiveDoc;
+        bool all = parameters.ContainsKey("all");
+        
+        if (all)
+        {
+            doc.Objects.Clear();
+            doc.Views.Redraw();
+            return new JObject()
+            {
+                ["deleted"] = true,
+            };
+        }
+        
+        
         var obj = getObjectByIdOrName(parameters);
 
-        var doc = RhinoDoc.ActiveDoc;
         bool success = doc.Objects.Delete(obj.Id, true);
 
         if (!success)

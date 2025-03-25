@@ -34,7 +34,7 @@ namespace RhinoMCPPlugin
         private readonly object lockObject = new object();
         private RhinoMCPFunctions handler;
 
-        public RhinoMCPServer(string host = "0.0.0.0", int port = 1999)
+        public RhinoMCPServer(string host = "127.0.0.1", int port = 1999)
         {
             this.host = host;
             this.port = port;
@@ -315,12 +315,15 @@ namespace RhinoMCPPlugin
                 ["get_selected_objects_info"] = this.handler.GetSelectedObjectsInfo,
                 ["delete_object"] = this.handler.DeleteObject,
                 ["modify_object"] = this.handler.ModifyObject,
+                ["modify_objects"] = this.handler.ModifyObjects,
                 ["execute_rhinoscript_python_code"] = this.handler.ExecuteRhinoscript
                 // Add more handlers as needed
             };
 
             if (handlers.TryGetValue(cmdType, out var handler))
             {
+                var doc = RhinoDoc.ActiveDoc;
+                var record = doc.BeginUndoRecord("Run MCP command");
                 try
                 {
                     JObject result = handler(parameters);
@@ -338,6 +341,10 @@ namespace RhinoMCPPlugin
                         ["status"] = "error",
                         ["message"] = e.Message
                     };
+                }
+                finally
+                {
+                    doc.EndUndoRecord(record);
                 }
             }
             else

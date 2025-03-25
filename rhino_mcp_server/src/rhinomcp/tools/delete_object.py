@@ -6,7 +6,7 @@ from typing import Any, List, Dict
 
 
 @mcp.tool()
-def delete_object(ctx: Context, id: str = None, name: str = None) -> str:
+def delete_object(ctx: Context, id: str = None, name: str = None, all: bool = None) -> str:
     """
     Delete an object from the Rhino document.
     
@@ -17,8 +17,17 @@ def delete_object(ctx: Context, id: str = None, name: str = None) -> str:
     try:
         # Get the global connection
         rhino = get_rhino_connection()
+
+        commandParams = {}
+        if id is not None:
+            commandParams["id"] = id
+        if name is not None:
+            commandParams["name"] = name
+        if all:
+            commandParams["all"] = all
         
-        result = rhino.send_command("delete_object", {"id": id, "name": name})
+        result = rhino.send_command("delete_object", commandParams)
+
         return f"Deleted object: {result['name']}"
     except Exception as e:
         logger.error(f"Error deleting object: {str(e)}")

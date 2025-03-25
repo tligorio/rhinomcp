@@ -15,5 +15,6 @@ from .tools.get_document_info import get_document_info
 from .tools.get_object_info import get_object_info
 from .tools.get_selected_objects_info import get_selected_objects_info
 from .tools.modify_object import modify_object
+from .tools.modify_objects import modify_objects
 from .tools.execute_rhinoscript_python_code import execute_rhinoscript_python_code
 
