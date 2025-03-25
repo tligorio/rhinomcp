@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using Rhino;
@@ -10,6 +11,54 @@ namespace RhinoMCPPlugin.Functions;
 
 public partial class RhinoMCPFunctions
 {
+    private double castToDouble(JToken token)
+    {
+        return token?.ToObject<double>() ?? 0;
+    }
+    private double[] castToDoubleArray(JToken token)
+    {
+        return token?.ToObject<double[]>() ?? new double[] { 0, 0, 0 };
+    }
+    private double[][] castToDoubleArray2D(JToken token)
+    {
+        List<double[]> result = new List<double[]>();
+        foreach (var t in (JArray)token)
+        {
+            double[] inner = castToDoubleArray(t);
+            result.Add(inner);
+        }
+        return result.ToArray();
+    }
+    private int castToInt(JToken token)
+    {
+        return token?.ToObject<int>() ?? 0;
+    }
+    private int[] castToIntArray(JToken token)
+    {
+        return token?.ToObject<int[]>() ?? new int[] { 0, 0, 0 };
+    }
+
+    private bool castToBool(JToken token)
+    {
+        return token?.ToObject<bool>() ?? false;
+    }
+
+    private string castToString(JToken token)
+    {
+        return token?.ToString();
+    }
+
+    private List<Point3d> castToPoint3dList(JToken token)
+    {
+        double[][] points = castToDoubleArray2D(token);
+        var ptList = new List<Point3d>();
+        foreach (var point in points)
+        {
+            ptList.Add(new Point3d(point[0], point[1], point[2]));
+        }
+        return ptList;
+    }
+
     private RhinoObject getObjectByIdOrName(JObject parameters)
     {
         string objectId = parameters["id"]?.ToString();

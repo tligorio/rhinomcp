@@ -18,7 +18,7 @@ def create_object(
     Create a new object in the Rhino document.
     
     Parameters:
-    - type: Object type ("BOX", "SPHERE")
+    - type: Object type ("POINT", "LINE", "POLYLINE", "CURVE", "BOX", "SPHERE")
     - name: Optional name for the object
     - color: Optional [r, g, b] color values (0-255) for the object
     - params: Type-specific parameters dictionary (see documentation for each type)
@@ -27,15 +27,35 @@ def create_object(
     - scale: Optional [x, y, z] scale factors
 
     The params dictionary is type-specific.
+    For POINT, the params dictionary should be empty.
+
+    For LINE, the params dictionary should contain the following keys:
+    - start: [x, y, z] start point of the line
+    - end: [x, y, z] end point of the line
+
+    For POLYLINE, the params dictionary should contain the following keys:
+    - points: List of [x, y, z] points that define the polyline
+
+    For CURVE, the params dictionary should contain the following keys:
+    - points: List of [x, y, z] control points that define the curve
+    - degree: Degree of the curve (default is 3, if user asked for smoother curve, degree can be higher)
+
     For BOX, the params dictionary should contain the following keys:
     - width: Width of the box along X axis of the object
     - length: Length of the box along Y axis of the object
     - height: Height of the box along Z axis of the object
+
+    For SPHERE, the params dictionary should contain the following key:
+    - radius: Radius of the sphere
     
     Returns:
     A message indicating the created object name.
     
     Examples of params:
+    - POINT: {} (no additional parameters because the point location is defined by the translation vector)
+    - LINE: {"start": [0, 0, 0], "end": [1, 1, 1]}
+    - POLYLINE: {"points": [[0, 0, 0], [1, 1, 1], [2, 2, 2]]}
+    - CURVE: {"points": [[0, 0, 0], [1, 1, 1], [2, 2, 2]], "degree": 3}
     - BOX: {"width": 1.0, "length": 1.0, "height": 1.0}
     - SPHERE: {"radius": 1.0}
     """
@@ -51,24 +71,15 @@ def create_object(
             "type": type,
             "translation": trans,
             "rotation": rot,
-            "scale": sc
+            "scale": sc,
+            "params": params
         }
 
         if name: command_params["name"] = name
         if color: command_params["color"] = color
 
         # Create the object
-        result = {}
-        if (type == "BOX"):
-            command_params["width"] = params["width"]
-            command_params["length"] = params["length"]
-            command_params["height"] = params["height"]
-            result = rhino.send_command("create_object", command_params)
-        elif (type == "SPHERE"):
-            result = rhino.send_command("create_object", command_params)
-        # elif (type == "CYLINDER"):
-        #     result = rhino.send_command("create_cylinder", command_params)
-            
+        result = result = rhino.send_command("create_object", command_params)  
         
         return f"Created {type} object: {result['name']}"
     except Exception as e:

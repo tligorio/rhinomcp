@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using Newtonsoft.Json.Linq;
 using Rhino;
@@ -13,10 +14,11 @@ public partial class RhinoMCPFunctions
     public JObject CreateObject(JObject parameters)
         {
             // parse meta data
-            string type = parameters["type"]?.ToString();
-            string name = parameters["name"]?.ToString();
+            string type = castToString(parameters.SelectToken("type"));
+            string name = castToString(parameters.SelectToken("name"));
             bool customColor = parameters.ContainsKey("color");
-            int[] color = parameters["color"]?.ToObject<int[]>() ?? new [] { 0, 0, 0 };
+            int[] color = castToIntArray(parameters.SelectToken("color"));
+            JObject geoParams = (JObject)parameters.SelectToken("params");
             
             var doc = RhinoDoc.ActiveDoc;
             Guid objectId = Guid.Empty;
@@ -24,11 +26,35 @@ public partial class RhinoMCPFunctions
             // Create a box centered at the specified point
             switch (type)
             {
+                case "POINT":
+                    objectId = doc.Objects.AddPoint(0,0,0);
+                    break;
+                case "LINE":
+                    double[] start = castToDoubleArray(geoParams.SelectToken("start"));
+                    double[] end = castToDoubleArray(geoParams.SelectToken("end"));
+                    var ptStart = new Point3d(start[0], start[1], start[2]);
+                    var ptEnd = new Point3d(end[0], end[1], end[2]);
+                    objectId = doc.Objects.AddLine(ptStart, ptEnd);
+                    break;
+                case "POLYLINE":
+                    List<Point3d> ptList = castToPoint3dList(geoParams.SelectToken("points"));
+                    objectId = doc.Objects.AddPolyline(ptList);
+                    break;
+                case "CURVE":
+                    List<Point3d> controlPoints = castToPoint3dList(geoParams.SelectToken("points"));
+                    int degree = castToInt(geoParams.SelectToken("degree"));
+                    var curve = Curve.CreateControlPointCurve(controlPoints, degree);
+                    if (curve == null)
+                    {
+                        throw new InvalidOperationException("unable to create control point curve from given points");
+                    }
+                    objectId = doc.Objects.AddCurve(curve);
+                    break;
                 case "BOX":
                     // parse size
-                    double width = parameters.SelectToken("params.width")?.ToObject<double>() ?? 1;
-                    double length = parameters.SelectToken("params.length")?.ToObject<double>() ?? 1;
-                    double height = parameters.SelectToken("params.height")?.ToObject<double>() ?? 1;
+                    double width = castToDouble(geoParams.SelectToken("width"));
+                    double length = castToDouble(geoParams.SelectToken("length"));
+                    double height = castToDouble(geoParams.SelectToken("height"));
                     double xSize = width, ySize = length, zSize = height;
                     Box box = new Box(
                         Plane.WorldXY,
@@ -41,7 +67,7 @@ public partial class RhinoMCPFunctions
                     
                 case "SPHERE":
                     // parse radius
-                    double radius = parameters.SelectToken("params.radius")?.ToObject<double>() ?? 1;
+                    double radius = castToDouble(geoParams.SelectToken("radius"));
                     // Create sphere at origin with specified radius
                     Sphere sphere = new Sphere(Point3d.Origin, radius);
                     // Convert sphere to BREP for adding to document

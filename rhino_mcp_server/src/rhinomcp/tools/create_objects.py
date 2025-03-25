@@ -16,10 +16,10 @@ def create_objects(
     - objects: A list of dictionaries, each containing the parameters for a single object
 
     Each object should have the following values:
-    - type: Object type ("BOX")
+    - type: Object type ("POINT", "LINE", "POLYLINE", "BOX", "SPHERE", etc.)
     - name: Optional name for the object
     - color: Optional [r, g, b] color values (0-255) for the object
-    - params: Type-specific parameters dictionary (see documentation for each type)
+    - params: Type-specific parameters dictionary (see documentation for each type in create_object() function)
     - translation: Optional [x, y, z] translation vector
     - rotation: Optional [x, y, z] rotation in radians
     - scale: Optional [x, y, z] scale factors
@@ -30,6 +30,26 @@ def create_objects(
     Examples of params:
     [
         {
+            "type": "POINT",
+            "name": "Point 1",
+            "translation": [0, 0, 0]
+        },
+        {
+            "type": "LINE",
+            "name": "Line 1",
+            "params": {"start": [0, 0, 0], "end": [1, 1, 1]}
+        },
+        {
+            "type": "POLYLINE",
+            "name": "Polyline 1",
+            "params": {"points": [[0, 0, 0], [1, 1, 1], [2, 2, 2]]}
+        },
+        {
+            "type": "CURVE",
+            "name": "Curve 1",
+            "params": {"points": [[0, 0, 0], [1, 1, 1], [2, 2, 2]], "degree": 3}
+        },
+        {
             "type": "BOX",
             "name": "Box 1",
             "color": [255, 0, 0],
@@ -39,7 +59,7 @@ def create_objects(
             "scale": [1, 1, 1]
         },
         {
-            "type": "Sphere",
+            "type": "SPHERE",
             "name": "Sphere 1",
             "color": [0, 255, 0],
             "params": {"radius": 1.0},
