@@ -21,6 +21,7 @@ This demo shows how AI can interact with Rhino in two directions. Click the imag
 - **Two-way communication**: Connect Claude AI to Rhino through a socket-based server
 - **Object manipulation**: Create, modify, and delete 3D objects in Rhino
 - **Document inspection**: Get detailed information about the current Rhino document
+- **Script execution**: Execute Rhinos python scripts in Rhino (experimental, may not work every time)
 
 > [!NOTE]  
 > So far the tool only supports creating primitive objects for proof of concept. More geometries will be added in the future.
@@ -37,7 +38,7 @@ The system consists of two main components:
 
 ### Prerequisites
 
-- Rhino 7 or newer (Works onWindows and Mac)
+- Rhino 7 or newer (Works onWindows and Mac); make sure you Rhino is up to date.
 - Python 3.10 or newer
 - uv package manager
 
