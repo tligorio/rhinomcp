@@ -39,6 +39,7 @@ def create_object(
     For CURVE, the params dictionary should contain the following keys:
     - points: List of [x, y, z] control points that define the curve
     - degree: Degree of the curve (default is 3, if user asked for smoother curve, degree can be higher)
+    If the curve is closed, the first and last points should be the same.
 
     For BOX, the params dictionary should contain the following keys:
     - width: Width of the box along X axis of the object
