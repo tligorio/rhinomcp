@@ -5,8 +5,7 @@ __version__ = "0.1.0"
 # Expose key classes and functions for easier imports
 from .server import RhinoConnection, get_rhino_connection, mcp, logger
 
-from .prompts.assert_creation_strategy import asset_creation_strategy
-from .prompts.assert_query_strategy import assert_query_strategy
+from .prompts.assert_general_strategy import asset_general_strategy
 
 from .tools.create_object import create_object
 from .tools.create_objects import create_objects

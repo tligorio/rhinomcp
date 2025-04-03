@@ -2,9 +2,16 @@ from rhinomcp.server import mcp
 
 
 @mcp.prompt()
-def asset_creation_strategy() -> str:
+def asset_general_strategy() -> str:
     """Defines the preferred strategy for creating assets in Rhino"""
-    return """When creating 3D content in Rhino, always start by checking if integrations are available:
+    return """
+    QUERY STRATEGY:
+    - if the id of the object is known, use the id to query the object.
+    - if the id is not known, use the name of the object to query the object.
+
+
+    CREATION STRATEGY:
+    When creating 3D content in Rhino, always start by checking if integrations are available:
 
     0. Before anything, always check the document from get_document_info()
     1. Please ALWAYS try to create the objects using the tool execute_rhinoscript_python_code() first.
@@ -15,7 +22,6 @@ def asset_creation_strategy() -> str:
 
     When creating rhinoscript python code:
     - do not hallucinate, only use the syntax that is supported by rhinoscriptsyntax or Rhino,Geometry.
-    - document the code that you are writing.
     - when creating objects, ALWAYS make sure that the name of the object is meanful.
     - double check the code if any of the code is not correct, and fix it.
     """
