@@ -10,36 +10,15 @@ from pathlib import Path
 STATIC_FOLDER = Path("./static")
 
 
-@mcp.list_resource()
-async def list_rhinoscriptsyntax_resources() -> list[types.Resource]:
-    STATIC_RESOURCES = {}
-    for file_path in STATIC_FOLDER.glob("*.py"):
-        if file_path.name != "__init__.py":  # Skip __init__.py if present
-            key = file_path.stem  # Get filename without extension
-            try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    STATIC_RESOURCES[key] = f.read()
-            except Exception as e:
-                print(f"Error reading {file_path}: {e}")
-    return [
-        types.Resource(
-            uri=FileUrl(f"file://{name}.py"),
-            name=name,
-            description=f"RhinoScriptsyntax for {name}",
-            mimeType="text/plain",
-        )
-        for name in STATIC_RESOURCES.keys()
-    ]
-
-
-@mcp.read_resource()
+@mcp.tool()
 def get_rhinoscriptsyntax_resource(category: str) -> str:
     """
-    RhinoScriptsyntax for a specific category.
+    Return the RhinoScriptsyntax for a specific category.
 
+    Parameters:
     - category: The category of the RhinoScriptsyntax to get.
 
-    following categories are available:
+    The following categories are available:
     - application
     - block
     - compat

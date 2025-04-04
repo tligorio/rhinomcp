@@ -17,4 +17,4 @@ from .tools.modify_object import modify_object
 from .tools.modify_objects import modify_objects
 from .tools.execute_rhinoscript_python_code import execute_rhinoscript_python_code
 
-from .resources.rhinoscriptsyntax_resource import list_rhinoscriptsyntax_resources, get_rhinoscriptsyntax_resource
+from .resources.rhinoscriptsyntax_resource import  get_rhinoscriptsyntax_resource
