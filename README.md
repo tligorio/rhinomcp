@@ -32,7 +32,7 @@ This demo shows how AI can interact with Rhino in two directions. Click the imag
 
 The system consists of two main components:
 
-1. **MCP Server (`src/rhino_mcp/server.py`)**: A Python server that implements the Model Context Protocol and connects to the Rhino plugin
+1. **MCP Server (`src/rhino_mcp_server/server.py`)**: A Python server that implements the Model Context Protocol and connects to the Rhino plugin
 2. **Rhino Plugin (`src/rhino_mcp_plugin`)**: A Rhino plugin that creates a socket server within Rhino to receive and execute commands
 
 ## Installation
