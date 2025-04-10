@@ -22,6 +22,7 @@ This demo shows how AI can interact with Rhino in two directions. Click the imag
 - **Object manipulation**: Create, modify, and delete 3D objects in Rhino
 - **Document inspection**: Get detailed information about the current Rhino document
 - **Script execution**: Execute Rhinos python scripts in Rhino (experimental, may not work every time)
+- **Object selection**: Select objects based on filters, e.g. name, color, category, etc. with "and" or "or" logic
 
 > [!NOTE]  
 > So far the tool only supports creating primitive objects for proof of concept. More geometries will be added in the future.
