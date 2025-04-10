@@ -32,7 +32,7 @@ def create_objects(
         {
             "type": "POINT",
             "name": "Point 1",
-            "translation": [0, 0, 0]
+            "params": {"x": 0, "y": 0, "z": 0}
         },
         {
             "type": "LINE",

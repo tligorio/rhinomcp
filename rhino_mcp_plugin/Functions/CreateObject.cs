@@ -27,7 +27,10 @@ public partial class RhinoMCPFunctions
             switch (type)
             {
                 case "POINT":
-                    objectId = doc.Objects.AddPoint(0,0,0);
+                    double x = castToDouble(geoParams.SelectToken("x"));
+                    double y = castToDouble(geoParams.SelectToken("y"));
+                    double z = castToDouble(geoParams.SelectToken("z"));
+                    objectId = doc.Objects.AddPoint(x,y,z);
                     break;
                 case "LINE":
                     double[] start = castToDoubleArray(geoParams.SelectToken("start"));

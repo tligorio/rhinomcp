@@ -27,7 +27,10 @@ def create_object(
     - scale: Optional [x, y, z] scale factors
 
     The params dictionary is type-specific.
-    For POINT, the params dictionary should be empty.
+    For POINT, the params dictionary should contain the following keys:
+    - x: x coordinate of the point
+    - y: y coordinate of the point
+    - z: z coordinate of the point
 
     For LINE, the params dictionary should contain the following keys:
     - start: [x, y, z] start point of the line
@@ -53,7 +56,7 @@ def create_object(
     A message indicating the created object name.
     
     Examples of params:
-    - POINT: {} (no additional parameters because the point location is defined by the translation vector)
+    - POINT: {"x": 0, "y": 0, "z": 0}
     - LINE: {"start": [0, 0, 0], "end": [1, 1, 1]}
     - POLYLINE: {"points": [[0, 0, 0], [1, 1, 1], [2, 2, 2]]}
     - CURVE: {"points": [[0, 0, 0], [1, 1, 1], [2, 2, 2]], "degree": 3}
