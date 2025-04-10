@@ -132,8 +132,25 @@ The system uses a simple JSON-based protocol over TCP sockets:
 
 ## Limitations & Security Considerations
 
-- The `get_document_info` only fetches max 10 objects, layers, material etc. to avoid huge dataset that overwhelms Claude.
+- The `get_document_info` only fetches max 30 objects, layers, material etc. to avoid huge dataset that overwhelms Claude.
 - Complex operations might need to be broken down into smaller steps
+
+## Building the tool and publishing
+
+### Building and publishing the server
+
+```bash
+cd rhino_mcp_server
+uv build
+uv publish
+```
+
+### Building and publishing the plugin
+
+1. build the tool in Release mode
+2. copy the "manifest.yml" file to the "bin/Release" folder
+3. run `yak build` in the Release folder
+4. run `yak push rhino_mcp_plugin_xxxx.yak` to publish the plugin
 
 ## Contributing
 
