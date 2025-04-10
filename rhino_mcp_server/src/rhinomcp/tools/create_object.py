@@ -66,18 +66,15 @@ def create_object(
     try:
         # Get the global connection
         rhino = get_rhino_connection()
-        # Set default values for missing parameters
-        trans = translation or [0, 0, 0]
-        rot = rotation or [0, 0, 0]
-        sc = scale or [1, 1, 1]
-        
+
         command_params = {
             "type": type,
-            "translation": trans,
-            "rotation": rot,
-            "scale": sc,
             "params": params
         }
+
+        if translation is not None: command_params["translation"] = translation
+        if rotation is not None: command_params["rotation"] = rotation
+        if scale is not None: command_params["scale"] = scale
 
         if name: command_params["name"] = name
         if color: command_params["color"] = color
