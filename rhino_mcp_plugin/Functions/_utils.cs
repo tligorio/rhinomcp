@@ -37,6 +37,10 @@ public partial class RhinoMCPFunctions
     {
         return token?.ToObject<int[]>() ?? new int[] { 0, 0, 0 };
     }
+    private List<string> castToStringList(JToken token)
+    {
+        return token?.ToObject<List<string>>() ?? new List<string>();
+    }
 
     private bool castToBool(JToken token)
     {
@@ -83,7 +87,8 @@ public partial class RhinoMCPFunctions
         return obj;
     }
 
-    private Transform applyRotation(JObject parameters, GeometryBase geometry){
+    private Transform applyRotation(JObject parameters, GeometryBase geometry)
+    {
         double[] rotation = parameters["rotation"].ToObject<double[]>();
         var xform = Transform.Identity;
 
@@ -103,17 +108,17 @@ public partial class RhinoMCPFunctions
 
         return xform;
     }
-    
+
     private Transform applyTranslation(JObject parameters)
     {
         double[] translation = parameters["translation"].ToObject<double[]>();
         var xform = Transform.Identity;
         Vector3d move = new Vector3d(translation[0], translation[1], translation[2]);
         xform *= Transform.Translation(move);
-        
+
         return xform;
     }
-    
+
     private Transform applyScale(JObject parameters, GeometryBase geometry)
     {
         double[] scale = parameters["scale"].ToObject<double[]>();
@@ -128,7 +133,7 @@ public partial class RhinoMCPFunctions
         // Create scale transformation
         Transform scaleTransform = Transform.Scale(plane, scale[0], scale[1], scale[2]);
         xform *= scaleTransform;
-        
+
         return xform;
     }
 }

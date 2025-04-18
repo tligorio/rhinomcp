@@ -7,7 +7,7 @@ from typing import Any, List, Dict
 @mcp.tool()
 def select_objects(
     ctx: Context,
-    filters: Dict[str, Any] = {},
+    filters: Dict[str, List[Any]] = {},
     filters_type: str = "and",
 ) -> str:
     """
@@ -16,6 +16,9 @@ def select_objects(
     Parameters:
     - filters: A dictionary containing the filters. The filters parameter is necessary, unless it's empty, in which case all objects will be selected.
     - filters_type: The type of the filters, it's "and" or "or", default is "and"
+
+    Note:
+    The filter value is always a list, even if it's a single value. The reason is that a filter can contain multiple values, for example when we query by a attribute that has EITHER value1 OR value2.
 
     The filters dictionary can contain the following keys:
     - name: The name of the object
@@ -27,8 +30,8 @@ def select_objects(
 
     Example:
     filters = {
-        "name": "object_name",
-        "category": "custom_attribute_value"
+        "name": ["object_name1", "object_name2"],
+        "category": ["custom_attribute_value"]
     },
     filters_type = "or"
     
