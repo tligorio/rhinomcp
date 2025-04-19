@@ -1,32 +1,38 @@
 # RhinoMCP - Rhino Model Context Protocol Integration
 
-RhinoMCP connects Rhino to Claude AI through the Model Context Protocol (MCP), allowing Claude to directly interact with and control Rhino. This integration enables prompt assisted 3D modeling in Rhino 3D.
+<img src="assets/rhinomcp_logo.svg" alt="RhinoMCP Logo" width="130">
 
-## Demo
-
-### Demo 1
-
-This demo shows how to ask AI to create custom scripts and execute them in Rhino. Click the image below to watch the video.
-
-[![demo2](https://img.youtube.com/vi/NFOF_Pjp3qY/maxresdefault.jpg)](https://youtu.be/NFOF_Pjp3qY)
-
-### Demo 2
-
-This demo shows how AI can interact with Rhino in two directions. Click the image below to watch the video.
-
-[![demo1](https://img.youtube.com/vi/pi6dbqUuhI4/maxresdefault.jpg)](https://youtu.be/pi6dbqUuhI4)
+RhinoMCP connects Rhino to AI agents through the Model Context Protocol (MCP), allowing AI agents to directly interact with and control Rhino. This integration enables prompt assisted 3D modeling in Rhino 3D.
 
 ## Features
 
-- **Two-way communication**: Connect Claude AI to Rhino through a socket-based server
+- **Two-way communication**: Connect AI agents to Rhino through a socket-based server
 - **Object manipulation**: Create, modify, and delete 3D objects in Rhino
 - **Document inspection**: Get detailed information about the current Rhino document
 - **Script execution**: Execute Rhinos python scripts in Rhino (experimental, may not work every time)
 - **Object selection**: Select objects based on filters, e.g. name, color, category, etc. with "and" or "or" logic
 
+## Demo
+
+### Demo 1
+
+This demo shows how AI can interact with Rhino in two directions. Click the image below to watch the video.
+
+[![demo2](assets/demo2.jpg)](https://youtu.be/pi6dbqUuhI4)
+
+### Demo 2
+
+This demo shows how to ask AI to create custom scripts and execute them in Rhino. Click the image below to watch the video.
+
+[![demo1](assets/demo1.jpg)](https://youtu.be/NFOF_Pjp3qY)
+
 > [!NOTE]  
 > So far the tool only supports creating primitive objects for proof of concept. More geometries will be added in the future.
 > Supported objects: Point, Line, Polyline, Curve, Box, Sphere
+
+## Tutorial
+
+Thanks to Nate. He has created a showcase and installation [tutorial](https://www.youtube.com/watch?v=z2IBP81ABRM) for this tool.
 
 ## Components
 
