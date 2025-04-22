@@ -304,7 +304,7 @@ namespace RhinoMCPPlugin
 
         private JObject ExecuteCommandInternal(string cmdType, JObject parameters)
         {
-            
+
             // Dictionary to map command types to handler methods
             Dictionary<string, Func<JObject, JObject>> handlers = new Dictionary<string, Func<JObject, JObject>>
             {
@@ -317,7 +317,9 @@ namespace RhinoMCPPlugin
                 ["modify_object"] = this.handler.ModifyObject,
                 ["modify_objects"] = this.handler.ModifyObjects,
                 ["execute_rhinoscript_python_code"] = this.handler.ExecuteRhinoscript,
-                ["select_objects"] = this.handler.SelectObjects
+                ["select_objects"] = this.handler.SelectObjects,
+                ["create_layer"] = this.handler.CreateLayer,
+                ["get_or_set_current_layer"] = this.handler.GetOrSetCurrentLayer
                 // Add more handlers as needed
             };
 

@@ -34,7 +34,7 @@ namespace rhinomcp.Serializers
                 Math.Round(pt.Z, 2)
             };
         }
-        
+
         public static JArray SerializePoints(IEnumerable<Point3d> pts)
         {
             return new JArray
@@ -42,7 +42,7 @@ namespace rhinomcp.Serializers
                 pts.Select(p => SerializePoint(p))
             };
         }
-        
+
         public static JObject SerializeCurve(Curve crv)
         {
             return new JObject
@@ -65,6 +65,17 @@ namespace rhinomcp.Serializers
             };
         }
 
+        public static JObject SerializeLayer(Layer layer)
+        {
+            return new JObject
+            {
+                ["id"] = layer.Id.ToString(),
+                ["name"] = layer.Name,
+                ["color"] = SerializeColor(layer.Color),
+                ["parent"] = layer.ParentLayerId.ToString()
+            };
+        }
+
         public static JObject RhinoObject(RhinoObject obj)
         {
             var objInfo = new JObject
@@ -76,7 +87,7 @@ namespace rhinomcp.Serializers
                 ["material"] = obj.Attributes.MaterialIndex.ToString(),
                 ["color"] = SerializeColor(obj.Attributes.ObjectColor)
             };
-            
+
             // add boundingbox
             BoundingBox bbox = obj.Geometry.GetBoundingBox(true);
             objInfo["bounding_box"] = SerializeBBox(bbox);
