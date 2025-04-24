@@ -1,5 +1,5 @@
 from mcp.server.fastmcp import Context
-from rhinomcp.server import get_rhino_connection, mcp, logger, rhinoscriptsyntax_json
+from rhinomcp import get_rhino_connection, mcp, logger, rhinoscriptsyntax_json
 from typing import Any, List, Dict
 
 

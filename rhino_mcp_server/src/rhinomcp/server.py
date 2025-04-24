@@ -7,17 +7,6 @@ import logging
 from dataclasses import dataclass
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Dict, Any, List
-import os
-from pathlib import Path
-import base64
-from urllib.parse import urlparse
-
-# Define path to static folder
-JSONFILE = Path("./src/rhinomcp/static/rhinoscriptsyntax.json")
-
-with open(JSONFILE, 'r') as f:
-    rhinoscriptsyntax_json = json.loads(f.read())
-
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 

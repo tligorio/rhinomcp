@@ -1,4 +1,4 @@
-[
+rhinoscriptsyntax_json = [
   {
     "ModuleName": "application",
     "functions": [
