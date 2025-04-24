@@ -12,6 +12,15 @@ from pathlib import Path
 import base64
 from urllib.parse import urlparse
 
+# load rhino_script_syntax.json
+from pathlib import Path
+
+# Define path to static folder
+JSONFILE = Path("./static/rhinoscriptsyntax.json")
+
+with open(JSONFILE, 'r') as f:
+    rhinoscriptsyntax_json = json.loads(f.read())
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 

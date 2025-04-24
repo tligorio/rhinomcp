@@ -3,7 +3,7 @@
 __version__ = "0.1.0"
 
 # Expose key classes and functions for easier imports
-from .server import RhinoConnection, get_rhino_connection, mcp, logger
+from .server import RhinoConnection, get_rhino_connection, mcp, logger, rhinoscriptsyntax_json
 
 from .prompts.assert_general_strategy import asset_general_strategy
 
@@ -16,9 +16,9 @@ from .tools.get_selected_objects_info import get_selected_objects_info
 from .tools.modify_object import modify_object
 from .tools.modify_objects import modify_objects
 from .tools.execute_rhinoscript_python_code import execute_rhinoscript_python_code
+from .tools.get_rhinoscript_python_function_names import get_rhinoscript_python_function_names
+from .tools.get_rhinoscript_python_code_guide import get_rhinoscript_python_code_guide
 from .tools.select_objects import select_objects
 from .tools.create_layer import create_layer
 from .tools.get_or_set_current_layer import get_or_set_current_layer
 from .tools.delete_layer import delete_layer
-
-from .resources.rhinoscriptsyntax_resource import  get_rhinoscriptsyntax_resource

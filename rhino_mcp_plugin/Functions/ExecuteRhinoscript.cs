@@ -51,7 +51,7 @@ public partial class RhinoMCPFunctions
             return new JObject
             {
                 ["success"] = false,
-                ["message"] = $"Error executing rhinoscript: {ex.Message}"
+                ["message"] = $"Error executing rhinoscript: {ex.ToString()}"
             };
         }
     }
