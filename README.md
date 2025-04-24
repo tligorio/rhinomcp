@@ -10,7 +10,9 @@ RhinoMCP connects Rhino to AI agents through the Model Context Protocol (MCP), a
 - **Object manipulation**: Create, modify, and delete 3D objects in Rhino
 - **Document inspection**: Get detailed information about the current Rhino document
 - **Script execution**: Execute Rhinos python scripts in Rhino (experimental, may not work every time)
+- **Get Script Documentation**: Get the documentation of a specific RhinoScript python function
 - **Object selection**: Select objects based on filters, e.g. name, color, category, etc. with "and" or "or" logic
+- **Set/Create/Delete Layers**: Get or set the current layer, create new layers, or delete layers
 
 ## Demo
 
