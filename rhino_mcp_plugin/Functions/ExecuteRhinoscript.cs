@@ -21,6 +21,11 @@ public partial class RhinoMCPFunctions
             throw new Exception("Code is required");
         }
 
+        // register undo
+        var undoRecordSerialNumber = doc.BeginUndoRecord("ExecuteRhinoScript");
+
+        JObject result = new JObject();
+
         try
         {
             var output = new StringBuilder();
@@ -40,19 +45,27 @@ public partial class RhinoMCPFunctions
             pythonScript.ExecuteScript(code);
 
 
-            return new JObject
-            {
-                ["success"] = true,
-                ["result"] = $"Script successfully executed! Print output: {output}"
-            };
+            result["success"] = true;
+            result["result"] = $"Script successfully executed! Print output: {output}";
         }
         catch (Exception ex)
         {
-            return new JObject
-            {
-                ["success"] = false,
-                ["message"] = $"Error executing rhinoscript: {ex.ToString()}"
-            };
+
+            result["success"] = false;
+            result["message"] = $"Error executing rhinoscript: {ex}";
         }
+        finally
+        {
+            // undo
+            doc.EndUndoRecord(undoRecordSerialNumber);
+        }
+
+        // if the script failed, undo the changes
+        if (!result["success"].ToObject<bool>())
+        {
+            doc.Undo();
+        }
+
+        return result;
     }
 }

@@ -25,6 +25,8 @@ def execute_rhinoscript_python_code(ctx: Context, code: str) -> Dict[str, Any]:
     - get_rhinoscript_python_code_guide("AddLoftSrf")
     - This will return the syntax of the code that are necessary for creating the code.
 
+    Any changes made to the document will be undone if the script returns failure.
+
     DO NOT HALLUCINATE, ONLY USE THE SYNTAX THAT IS SUPPORTED BY RHINO.GEOMETRY OR RHINOSCRIPT.
     
     """
