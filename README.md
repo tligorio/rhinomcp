@@ -167,3 +167,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## Disclaimer
 
 This is a third-party integration and not made by Mcneel. Made by [Jingcheng Chen](https://github.com/jingcheng-chen)
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=jingcheng-chen/rhinomcp&type=Date)](https://www.star-history.com/#jingcheng-chen/rhinomcp&Date)
