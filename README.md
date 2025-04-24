@@ -14,6 +14,10 @@ RhinoMCP connects Rhino to AI agents through the Model Context Protocol (MCP), a
 - **Object selection**: Select objects based on filters, e.g. name, color, category, etc. with "and" or "or" logic
 - **Set/Create/Delete Layers**: Get or set the current layer, create new layers, or delete layers
 
+> [!NOTE]  
+> So far the tool only supports creating primitive objects for proof of concept. More geometries will be added in the future.
+> Supported objects: Point, Line, Polyline, Curve, Box, Sphere
+
 ## Demo
 
 ### Demo 1
@@ -27,10 +31,6 @@ This demo shows how AI can interact with Rhino in two directions. Click the imag
 This demo shows how to ask AI to create custom scripts and execute them in Rhino. Click the image below to watch the video.
 
 [![demo1](assets/demo1.jpg)](https://youtu.be/NFOF_Pjp3qY)
-
-> [!NOTE]  
-> So far the tool only supports creating primitive objects for proof of concept. More geometries will be added in the future.
-> Supported objects: Point, Line, Polyline, Curve, Box, Sphere
 
 ## Tutorial
 
