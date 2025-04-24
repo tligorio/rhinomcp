@@ -5,12 +5,14 @@ from typing import Any, List, Dict
 
 
 @mcp.tool()
-def execute_rhinoscript_python_code(ctx: Context, code: str) -> str:
+def execute_rhinoscript_python_code(ctx: Context, code: str) -> Dict[str, Any]:
     """
     Execute arbitrary RhinoScript code in Rhino.
     
     Parameters:
     - code: The RhinoScript code to execute
+
+    To get any output from the script, you should use the python `print` function.
 
     References:
 
@@ -47,8 +49,8 @@ def execute_rhinoscript_python_code(ctx: Context, code: str) -> str:
         # Get the global connection
         rhino = get_rhino_connection()
         
-        result = rhino.send_command("execute_rhinoscript_python_code", {"code": code})
-        return f"Code executed successfully: {result.get('result', '')}"
+        return rhino.send_command("execute_rhinoscript_python_code", {"code": code})
+
     except Exception as e:
         logger.error(f"Error executing code: {str(e)}")
-        return f"Error executing code: {str(e)}"
+        return {"success": False, "message": str(e)}
