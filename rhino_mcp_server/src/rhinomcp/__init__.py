@@ -19,5 +19,6 @@ from .tools.execute_rhinoscript_python_code import execute_rhinoscript_python_co
 from .tools.select_objects import select_objects
 from .tools.create_layer import create_layer
 from .tools.get_or_set_current_layer import get_or_set_current_layer
+from .tools.delete_layer import delete_layer
 
 from .resources.rhinoscriptsyntax_resource import  get_rhinoscriptsyntax_resource

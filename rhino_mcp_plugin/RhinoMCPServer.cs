@@ -319,7 +319,8 @@ namespace RhinoMCPPlugin
                 ["execute_rhinoscript_python_code"] = this.handler.ExecuteRhinoscript,
                 ["select_objects"] = this.handler.SelectObjects,
                 ["create_layer"] = this.handler.CreateLayer,
-                ["get_or_set_current_layer"] = this.handler.GetOrSetCurrentLayer
+                ["get_or_set_current_layer"] = this.handler.GetOrSetCurrentLayer,
+                ["delete_layer"] = this.handler.DeleteLayer
                 // Add more handlers as needed
             };
 
