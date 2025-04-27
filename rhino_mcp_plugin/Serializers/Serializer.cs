@@ -76,6 +76,17 @@ namespace rhinomcp.Serializers
             };
         }
 
+        public static JObject RhinoObjectAttributes(RhinoObject obj)
+        {
+            var attributes = obj.Attributes.GetUserStrings();
+            var attributesDict = new JObject();
+            foreach (string key in attributes.AllKeys)
+            {
+                attributesDict[key] = attributes[key];
+            }
+            return attributesDict;
+        }
+
         public static JObject RhinoObject(RhinoObject obj)
         {
             var objInfo = new JObject

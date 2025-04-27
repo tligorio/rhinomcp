@@ -32,7 +32,7 @@ public partial class RhinoMCPFunctions
         // Change color if provided
         if (parameters["new_color"] != null)
         {
-            int[] color = parameters["new_color"]?.ToObject<int[]>() ?? new [] { 0, 0, 0 };
+            int[] color = parameters["new_color"]?.ToObject<int[]>() ?? new[] { 0, 0, 0 };
             obj.Attributes.ObjectColor = Color.FromArgb(color[0], color[1], color[2]);
             obj.Attributes.ColorSource = ObjectColorSource.ColorFromObject;
             attributesModified = true;
@@ -55,7 +55,7 @@ public partial class RhinoMCPFunctions
         // Apply rotation if provided
         if (parameters["rotation"] != null)
         {
-           xform *= applyRotation(parameters, geometry);
+            xform *= applyRotation(parameters, geometry);
             geometryModified = true;
         }
 
@@ -74,6 +74,7 @@ public partial class RhinoMCPFunctions
         // Update views
         doc.Views.Redraw();
 
-        return GetObjectInfo(new JObject { ["id"] = obj.Id });
+        return Serializer.RhinoObject(getObjectByIdOrName(new JObject { ["id"] = obj.Id }));
+
     }
 }

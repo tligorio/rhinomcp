@@ -11,6 +11,8 @@ public partial class RhinoMCPFunctions
     {
         var obj = getObjectByIdOrName(parameters);
 
-        return Serializer.RhinoObject(obj);
+        var data = Serializer.RhinoObject(obj);
+        data["attributes"] = Serializer.RhinoObjectAttributes(obj);
+        return data;
     }
 }
