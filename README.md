@@ -16,7 +16,7 @@ RhinoMCP connects Rhino to AI agents through the Model Context Protocol (MCP), a
 
 > [!NOTE]  
 > So far the tool only supports creating primitive objects for proof of concept. More geometries will be added in the future.
-> Supported objects: Point, Line, Polyline, Curve, Box, Sphere
+> Supported objects: Point, Line, Polyline, Circle, Arc, Ellipse, Curve, Box, Sphere, Cone, Cylinder, Surface (from points)
 
 ## Demo
 
