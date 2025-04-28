@@ -37,6 +37,12 @@ public partial class RhinoMCPFunctions
     {
         return token?.ToObject<int[]>() ?? new int[] { 0, 0, 0 };
     }
+
+    private bool[] castToBoolArray(JToken token)
+    {
+        return token?.ToObject<bool[]>() ?? new bool[] { false, false };
+    }
+
     private List<string> castToStringList(JToken token)
     {
         return token?.ToObject<List<string>>() ?? new List<string>();
@@ -52,6 +58,13 @@ public partial class RhinoMCPFunctions
         return token?.ToString();
     }
 
+    private Guid castToGuid(JToken token)
+    {
+        var guid = token?.ToString();
+        if (guid == null) return Guid.Empty;
+        return new Guid(guid);
+    }
+
     private List<Point3d> castToPoint3dList(JToken token)
     {
         double[][] points = castToDoubleArray2D(token);
@@ -61,6 +74,12 @@ public partial class RhinoMCPFunctions
             ptList.Add(new Point3d(point[0], point[1], point[2]));
         }
         return ptList;
+    }
+
+    private Point3d castToPoint3d(JToken token)
+    {
+        double[] point = castToDoubleArray(token);
+        return new Point3d(point[0], point[1], point[2]);
     }
 
     private RhinoObject getObjectByIdOrName(JObject parameters)
