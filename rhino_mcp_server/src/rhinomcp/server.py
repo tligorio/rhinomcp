@@ -10,12 +10,18 @@ from dataclasses import dataclass
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Dict, Any, List
 
+# Import our notification framework
+from mcp_notifications.mixins import NotificationMixin
+from mcp_notifications.transport_manager import TransportManager
+from mcp_notifications.models import StandardEvent, BaseEventType, RhinoEventTypes
+from mcp_notifications.base_notifier import BaseMCPNotifier
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 
-# Setup logging for Claude <--> Rhino  JSON payloads
+# Setup logging for Claude <--> Rhino JSON payloads + SSE events
 LOG_DIR = pathlib.Path.home() / "dev" / "logs" / "rhinomcp" 
 LOG_DIR.mkdir(exist_ok=True)
 session_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -25,7 +31,8 @@ class WireFilter(Filter):
     """Allow only log records whose message starts with our wire tags."""
     def filter(self, record):
         return record.msg.startswith("[Claude → Rhino]") \
-            or record.msg.startswith("[Rhino → Claude]")
+            or record.msg.startswith("[Rhino → Claude]") \
+            or record.msg.startswith("[Rhino → SSE]")  # NEW: SSE events
 
 fh = FileHandler(log_path, encoding="utf‑8")
 fh.setFormatter(logging.Formatter("%(asctime)s  %(message)s"))
@@ -186,6 +193,85 @@ class RhinoConnection:
             self.sock = None
             raise Exception(f"Communication error with Rhino: {str(e)}")
 
+
+# Demo notifier to show the framework working (will be replaced with real Rhino event detection)
+class DemoRhinoNotifier(BaseMCPNotifier):
+    """
+    Demo notifier that simulates Rhino events for testing
+    
+    This will be replaced with a real RhinoNotifier that detects actual
+    model changes from the Rhino addon.
+    """
+    
+    def __init__(self):
+        super().__init__("RhinoEventDemo")
+        self.demo_events = [
+            # Simulate some typical Rhino operations
+            self.create_standard_event(BaseEventType.GEOMETRY, "added", {
+                "object_id": "demo_cube_001",
+                "object_type": "mesh",
+                "layer": "Default",
+                "vertices": 8,
+                "faces": 6
+            }),
+            self.create_custom_event(RhinoEventTypes.NURBS_SURFACE_CREATED, {
+                "object_id": "demo_surface_001", 
+                "degree_u": 3,
+                "degree_v": 3,
+                "control_points": 16,
+                "layer": "Surfaces"
+            }),
+            self.create_standard_event(BaseEventType.LAYER, "renamed", {
+                "old_name": "Layer01",
+                "new_name": "Walls",
+                "layer_id": "layer_001"
+            }),
+            self.create_custom_event(RhinoEventTypes.BOOLEAN_OPERATION, {
+                "operation": "union",
+                "input_objects": ["demo_cube_001", "demo_cylinder_002"],
+                "result_object": "demo_union_003"
+            })
+        ]
+        self.event_index = 0
+        self._demo_task = None
+    
+    async def detect_events(self) -> AsyncIterator[StandardEvent]:
+        """Simulate event detection by yielding demo events"""
+        while self._is_active and self.event_index < len(self.demo_events):
+            await asyncio.sleep(3)  # Emit an event every 3 seconds
+            if self.event_index < len(self.demo_events):
+                yield self.demo_events[self.event_index]
+                self.event_index += 1
+    
+    async def start_monitoring(self) -> None:
+        """Start demo monitoring"""
+        logger.info("Demo Rhino event monitoring started")
+    
+    async def stop_monitoring(self) -> None:
+        """Stop demo monitoring"""
+        logger.info("Demo Rhino event monitoring stopped")
+
+
+# Global connection for resources (since resources can't access context)
+_rhino_connection = None
+
+def get_rhino_connection():
+    """Get or create a persistent Rhino connection"""
+    global _rhino_connection
+    
+    # Create a new connection if needed
+    if _rhino_connection is None:
+        _rhino_connection = RhinoConnection(host="127.0.0.1", port=1999)
+        if not _rhino_connection.connect():
+            logger.error("Failed to connect to Rhino")
+            _rhino_connection = None
+            raise Exception("Could not connect to Rhino. Make sure the Rhino addon is running.")
+        logger.info("Created new persistent connection to Rhino")
+    
+    return _rhino_connection
+
+
+# Original server lifespan for backward compatibility
 @asynccontextmanager
 async def server_lifespan(server: FastMCP) -> AsyncIterator[Dict[str, Any]]:
     """Manage server startup and shutdown lifecycle"""
@@ -216,38 +302,113 @@ async def server_lifespan(server: FastMCP) -> AsyncIterator[Dict[str, Any]]:
             _rhino_connection = None
         logger.info("RhinoMCP server shut down")
 
-# Create the MCP server with lifespan support
+
+# BACKWARD COMPATIBILITY: Create the original MCP server instance
 mcp = FastMCP(
     "RhinoMCP",
     description="Rhino integration through the Model Context Protocol",
     lifespan=server_lifespan
 )
 
-# Resource endpoints
 
-# Global connection for resources (since resources can't access context)
-_rhino_connection = None
-
-def get_rhino_connection():
-    """Get or create a persistent Rhino connection"""
-    global _rhino_connection
+# Enhanced RhinoMCP Server with notification capabilities
+class RhinoMCPServer(FastMCP, NotificationMixin):
+    """
+    Enhanced RhinoMCP server with real-time notification capabilities
+    """
     
-    # Create a new connection if needed
-    if _rhino_connection is None:
-        _rhino_connection = RhinoConnection(host="127.0.0.1", port=1999)
-        if not _rhino_connection.connect():
-            logger.error("Failed to connect to Rhino")
+    def __init__(self):
+        # Initialize FastMCP
+        super().__init__(
+            "RhinoMCP",
+            description="Rhino integration through the Model Context Protocol with real-time notifications"
+        )
+        
+        # Initialize notification system
+        transport_manager = TransportManager()
+        self.init_notifications(transport_manager=transport_manager, logger=logger)
+        
+        # Add demo notifier (will be replaced with real Rhino notifier)
+        demo_notifier = DemoRhinoNotifier()
+        self.add_notifier(demo_notifier)
+        
+        # Use the global logger instead of self.logger
+        logger.info(f"RhinoMCP server initialized with transport: {transport_manager.config}")
+
+
+@asynccontextmanager
+async def enhanced_server_lifespan(server: RhinoMCPServer) -> AsyncIterator[Dict[str, Any]]:
+    """
+    Enhanced lifespan manager that includes both Rhino connection and notifications
+    """
+    try:
+        # Start up sequence
+        logger.info("RhinoMCP server starting up with notifications")
+        
+        # Try to connect to Rhino on startup to verify it's available
+        try:
+            # This will initialize the global connection if needed
+            rhino = get_rhino_connection()
+            logger.info("Successfully connected to Rhino on startup")
+        except Exception as e:
+            logger.warning(f"Could not connect to Rhino on startup: {str(e)}")
+            logger.warning("Make sure the Rhino addon is running before using Rhino resources or tools")
+        
+        # Start the notification system
+        await server.start_notifications()
+        logger.info("Notification system started")
+        
+        # Return an empty context - we're using the global connection
+        yield {}
+        
+    finally:
+        # Shutdown sequence
+        logger.info("RhinoMCP server shutting down")
+        
+        # Stop notifications first
+        await server.stop_notifications()
+        logger.info("Notification system stopped")
+        
+        # Clean up the global Rhino connection
+        global _rhino_connection
+        if _rhino_connection:
+            logger.info("Disconnecting from Rhino on shutdown")
+            _rhino_connection.disconnect()
             _rhino_connection = None
-            raise Exception("Could not connect to Rhino. Make sure the Rhino addon is running.")
-        logger.info("Created new persistent connection to Rhino")
-    
-    return _rhino_connection
+        
+        logger.info("RhinoMCP server shut down complete")
 
-# Main execution
+
+# Create the enhanced server instance
+def create_enhanced_server():
+    """Create and configure the enhanced RhinoMCP server with notifications"""
+    server = RhinoMCPServer()
+    server._lifespan = enhanced_server_lifespan
+    return server
+
+
+# Main execution functions
 def main():
-    """Run the MCP server"""
+    """Run the original MCP server (backward compatibility)"""
     mcp.run()
 
 
+def main_enhanced():
+    """Run the enhanced MCP server with notifications"""
+    server = create_enhanced_server()
+    
+    # The transport manager will handle the actual server.run() call
+    # with the appropriate transport configuration
+    server._transport_manager.run_server(server)
+
+
 if __name__ == "__main__":
-    main()
+    # Check environment variable to decide which server to run
+    use_enhanced = os.getenv("RHINOMCP_ENHANCED", "false").lower() in ("true", "1", "yes")
+    
+    if use_enhanced:
+        logger.info("Starting enhanced RhinoMCP server with notifications")
+        main_enhanced()
+    else:
+        logger.info("Starting original RhinoMCP server")
+        main()
