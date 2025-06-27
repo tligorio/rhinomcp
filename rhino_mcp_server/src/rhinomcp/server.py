@@ -3,7 +3,9 @@ from mcp.server.fastmcp import FastMCP, Context, Image
 import socket
 import json
 import asyncio
-import logging
+import logging, os, pathlib
+from logging import FileHandler, Filter
+from datetime import datetime
 from dataclasses import dataclass
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Dict, Any, List
@@ -11,7 +13,28 @@ from typing import AsyncIterator, Dict, Any, List
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+
+# Setup logging for Claude <--> Rhino  JSON payloads
+LOG_DIR = pathlib.Path.home() / "dev" / "logs" / "rhinomcp" 
+LOG_DIR.mkdir(exist_ok=True)
+session_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+log_path = LOG_DIR / f"wire_{session_stamp}.log"
+
+class WireFilter(Filter):
+    """Allow only log records whose message starts with our wire tags."""
+    def filter(self, record):
+        return record.msg.startswith("[Claude → Rhino]") \
+            or record.msg.startswith("[Rhino → Claude]")
+
+fh = FileHandler(log_path, encoding="utf‑8")
+fh.setFormatter(logging.Formatter("%(asctime)s  %(message)s"))
+fh.addFilter(WireFilter())           # ✱ filter before attach
+fh.setLevel(logging.INFO)            # same threshold as default
+
 logger = logging.getLogger("RhinoMCPServer")
+logger.addHandler(fh)
+
 
 @dataclass
 class RhinoConnection:
@@ -109,6 +132,9 @@ class RhinoConnection:
             "type": command_type,
             "params": params or {}
         }
+
+        # Log the full Claude → Rhino command
+        logger.info("[Claude → Rhino] %s", json.dumps(command))
         
         try:
             # Log the command being sent
@@ -129,6 +155,8 @@ class RhinoConnection:
             logger.info(f"Received {len(response_data)} bytes of data")
             
             response = json.loads(response_data.decode('utf-8'))
+            # Log the full Rhino → Claude response
+            logger.info("[Rhino → Claude] %s", json.dumps(response))
             logger.info(f"Response parsed, status: {response.get('status', 'unknown')}")
             
             if response.get("status") == "error":
