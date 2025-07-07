@@ -3,53 +3,74 @@ from mcp.server.fastmcp import FastMCP, Context, Image
 import socket
 import json
 import asyncio
-import logging, os, pathlib
+import uuid
+import logging, os, pathlib, tempfile
 from logging import FileHandler, Filter
 from datetime import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Dict, Any, List
+import time
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, 
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-
-# Setup logging for Claude <--> Rhino  JSON payloads
-LOG_DIR = pathlib.Path.home() / "dev" / "logs" / "rhinomcp" 
+# --- File Handler for Wire Log ---
+# Use project-local logs directory instead of system temp
+project_root = pathlib.Path(__file__).parent.parent.parent
+LOG_DIR = project_root / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 session_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 log_path = LOG_DIR / f"wire_{session_stamp}.log"
 
-class WireFilter(Filter):
-    """Allow only log records whose message starts with our wire tags."""
+class WireFilter(logging.Filter):
     def filter(self, record):
-        return record.msg.startswith("[Claude → Rhino]") \
-            or record.msg.startswith("[Rhino → Claude]")
+        return record.getMessage().startswith(("[Claude → Rhino]", "[Rhino → Claude]", "[Rhino -> Server]"))
 
-fh = FileHandler(log_path, encoding="utf‑8")
+# Get the root logger
+logger = logging.getLogger()
+
+# Create and configure the file handler
+fh = logging.FileHandler(log_path, encoding="utf-8")
+fh.setLevel(logging.INFO)
 fh.setFormatter(logging.Formatter("%(asctime)s  %(message)s"))
-fh.addFilter(WireFilter())           # ✱ filter before attach
-fh.setLevel(logging.INFO)            # same threshold as default
+fh.addFilter(WireFilter())
 
-logger = logging.getLogger("RhinoMCPServer")
+# Add the handler to the root logger
 logger.addHandler(fh)
 
+# Log the location for debugging
+logger.info(f"Wire log file: {log_path}")
+
+# Global connection instance
+_global_rhino_connection: "RhinoConnection" = None
 
 @dataclass
 class RhinoConnection:
     host: str
     port: int
-    sock: socket.socket | None = None  # Changed from 'socket' to 'sock' to avoid naming conflict
+    sock: socket.socket | None = None
+    pending_requests: Dict[str, asyncio.Future] = field(default_factory=dict)
+    listener_task: asyncio.Task | None = None
+    # Command execution context tracking
+    active_command_context: Dict[str, Any] = field(default_factory=dict)
+    command_timeout: float = 5.0  # seconds to associate events with commands
     
-    def connect(self) -> bool:
+    async def connect(self) -> bool:
         """Connect to the Rhino addon socket server"""
         if self.sock:
             return True
             
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.connect((self.host, self.port))
+            self.sock.setblocking(False)  # Set to non-blocking for async operations
+            
+            # Use asyncio to connect
+            await asyncio.get_running_loop().sock_connect(self.sock, (self.host, self.port))
+            
+            # Start the listener task
+            self.listener_task = asyncio.create_task(self._listen())
+            
             logger.info(f"Connected to Rhino at {self.host}:{self.port}")
             return True
         except Exception as e:
@@ -57,8 +78,74 @@ class RhinoConnection:
             self.sock = None
             return False
     
+    def _is_user_initiated_event(self) -> bool:
+        """Check if an event is user-initiated (not triggered by a recent command)"""
+        current_time = time.time()
+        
+        # Check if we have any recent commands
+        for request_id, context in self.active_command_context.items():
+            if current_time - context['timestamp'] < self.command_timeout:
+                return False  # Command-triggered event
+        
+        return True  # User-initiated event
+    
+    def _cleanup_old_contexts(self):
+        """Remove old command contexts"""
+        current_time = time.time()
+        expired_contexts = [
+            request_id for request_id, context in self.active_command_context.items()
+            if current_time - context['timestamp'] > self.command_timeout
+        ]
+        for request_id in expired_contexts:
+            del self.active_command_context[request_id]
+    
+    async def _listen(self):
+        """Listen for incoming messages from Rhino"""
+        while self.sock and not self.sock._closed:
+            try:
+                response_data = await asyncio.get_running_loop().sock_recv(self.sock, 8192)
+                if not response_data:
+                    logger.warning("Connection to Rhino closed")
+                    self.disconnect()
+                    break
+                
+                response = json.loads(response_data.decode('utf-8'))
+                request_id = response.get("request_id")
+                
+                if request_id and request_id in self.pending_requests:
+                    logger.info(f"[Rhino → Claude] {json.dumps(response)}")
+                    
+                    # Remove the command context as it's complete
+                    if request_id in self.active_command_context:
+                        del self.active_command_context[request_id]
+                    
+                    future = self.pending_requests.pop(request_id)
+                    future.set_result(response.get("result", {}))
+                elif response.get("type") == "event":
+                    # Clean up old contexts first
+                    self._cleanup_old_contexts()
+                    
+                    # Only log user-initiated events
+                    if self._is_user_initiated_event():
+                        logger.info(f"[Rhino -> Server] (user-initiated) {json.dumps(response)}")
+                else:
+                    logger.warning(f"Received unexpected message from Rhino: {response}")
+            except (ConnectionError, BrokenPipeError, ConnectionResetError) as e:
+                logger.error(f"Socket connection error: {str(e)}")
+                self.disconnect()
+                break
+            except json.JSONDecodeError as e:
+                logger.error(f"Invalid JSON response from Rhino: {str(e)}")
+            except Exception as e:
+                logger.error(f"Error in listener: {str(e)}")
+                self.disconnect()
+                break
+    
     def disconnect(self):
         """Disconnect from the Rhino addon"""
+        if self.listener_task and not self.listener_task.done():
+            self.listener_task.cancel()
+        
         if self.sock:
             try:
                 self.sock.close()
@@ -67,70 +154,22 @@ class RhinoConnection:
             finally:
                 self.sock = None
 
-    def receive_full_response(self, sock, buffer_size=8192):
-        """Receive the complete response, potentially in multiple chunks"""
-        chunks = []
-        # Use a consistent timeout value that matches the addon's timeout
-        sock.settimeout(15.0)  # Match the addon's timeout
-        
-        try:
-            while True:
-                try:
-                    chunk = sock.recv(buffer_size)
-                    if not chunk:
-                        # If we get an empty chunk, the connection might be closed
-                        if not chunks:  # If we haven't received anything yet, this is an error
-                            raise Exception("Connection closed before receiving any data")
-                        break
-                    
-                    chunks.append(chunk)
-                    
-                    # Check if we've received a complete JSON object
-                    try:
-                        data = b''.join(chunks)
-                        json.loads(data.decode('utf-8'))
-                        # If we get here, it parsed successfully
-                        logger.info(f"Received complete response ({len(data)} bytes)")
-                        return data
-                    except json.JSONDecodeError:
-                        # Incomplete JSON, continue receiving
-                        continue
-                except socket.timeout:
-                    # If we hit a timeout during receiving, break the loop and try to use what we have
-                    logger.warning("Socket timeout during chunked receive")
-                    break
-                except (ConnectionError, BrokenPipeError, ConnectionResetError) as e:
-                    logger.error(f"Socket connection error during receive: {str(e)}")
-                    raise  # Re-raise to be handled by the caller
-        except socket.timeout:
-            logger.warning("Socket timeout during chunked receive")
-        except Exception as e:
-            logger.error(f"Error during receive: {str(e)}")
-            raise
-            
-        # If we get here, we either timed out or broke out of the loop
-        # Try to use what we have
-        if chunks:
-            data = b''.join(chunks)
-            logger.info(f"Returning data after receive completion ({len(data)} bytes)")
-            try:
-                # Try to parse what we have
-                json.loads(data.decode('utf-8'))
-                return data
-            except json.JSONDecodeError:
-                # If we can't parse it, it's incomplete
-                raise Exception("Incomplete JSON response received")
-        else:
-            raise Exception("No data received")
-
-    def send_command(self, command_type: str, params: Dict[str, Any] = {}) -> Dict[str, Any]:
+    async def send_command(self, command_type: str, params: Dict[str, Any] = {}) -> Dict[str, Any]:
         """Send a command to Rhino and return the response"""
-        if not self.sock and not self.connect():
+        if not self.sock and not await self.connect():
             raise ConnectionError("Not connected to Rhino")
         
+        request_id = str(uuid.uuid4())
         command = {
             "type": command_type,
-            "params": params or {}
+            "params": params or {},
+            "request_id": request_id
+        }
+
+        # Track command execution context
+        self.active_command_context[request_id] = {
+            'command_type': command_type,
+            'timestamp': time.time()
         }
 
         # Log the full Claude → Rhino command
@@ -143,45 +182,39 @@ class RhinoConnection:
             if self.sock is None:
                 raise Exception("Socket is not connected")
             
-            # Send the command
-            self.sock.sendall(json.dumps(command).encode('utf-8'))
+            # Send the command using async socket operations
+            command_bytes = json.dumps(command).encode('utf-8')
+            await asyncio.get_running_loop().sock_sendall(self.sock, command_bytes)
             logger.info(f"Command sent, waiting for response...")
             
-            # Set a timeout for receiving - use the same timeout as in receive_full_response
-            self.sock.settimeout(15.0)  # Match the addon's timeout
+            # Create a future to wait for the response
+            future = asyncio.get_running_loop().create_future()
+            self.pending_requests[request_id] = future
             
-            # Receive the response using the improved receive_full_response method
-            response_data = self.receive_full_response(self.sock)
-            logger.info(f"Received {len(response_data)} bytes of data")
-            
-            response = json.loads(response_data.decode('utf-8'))
-            # Log the full Rhino → Claude response
-            logger.info("[Rhino → Claude] %s", json.dumps(response))
-            logger.info(f"Response parsed, status: {response.get('status', 'unknown')}")
-            
-            if response.get("status") == "error":
-                logger.error(f"Rhino error: {response.get('message')}")
-                raise Exception(response.get("message", "Unknown error from Rhino"))
-            
-            return response.get("result", {})
-        except socket.timeout:
-            logger.error("Socket timeout while waiting for response from Rhino")
-            # Don't try to reconnect here - let the get_rhino_connection handle reconnection
-            # Just invalidate the current socket so it will be recreated next time
-            self.sock = None
-            raise Exception("Timeout waiting for Rhino response - try simplifying your request")
+            # Wait for the response with a timeout
+            try:
+                return await asyncio.wait_for(future, timeout=15.0)
+            except asyncio.TimeoutError:
+                logger.error("Timeout waiting for response from Rhino")
+                if request_id in self.pending_requests:
+                    del self.pending_requests[request_id]
+                # Clean up command context on timeout
+                if request_id in self.active_command_context:
+                    del self.active_command_context[request_id]
+                raise Exception("Timeout waiting for Rhino response - try simplifying your request")
+
         except (ConnectionError, BrokenPipeError, ConnectionResetError) as e:
             logger.error(f"Socket connection error: {str(e)}")
+            # Clean up command context on error
+            if request_id in self.active_command_context:
+                del self.active_command_context[request_id]
             self.sock = None
             raise Exception(f"Connection to Rhino lost: {str(e)}")
-        except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON response from Rhino: {str(e)}")
-            # Try to log what was received
-            if 'response_data' in locals() and response_data: # type: ignore
-                logger.error(f"Raw response (first 200 bytes): {response_data[:200]}")
-            raise Exception(f"Invalid response from Rhino: {str(e)}")
         except Exception as e:
             logger.error(f"Error communicating with Rhino: {str(e)}")
+            # Clean up command context on error
+            if request_id in self.active_command_context:
+                del self.active_command_context[request_id]
             # Don't try to reconnect here - let the get_rhino_connection handle reconnection
             self.sock = None
             raise Exception(f"Communication error with Rhino: {str(e)}")
@@ -189,32 +222,21 @@ class RhinoConnection:
 @asynccontextmanager
 async def server_lifespan(server: FastMCP) -> AsyncIterator[Dict[str, Any]]:
     """Manage server startup and shutdown lifecycle"""
-    # We don't need to create a connection here since we're using the global connection
-    # for resources and tools
+    global _global_rhino_connection
     
+    connection = RhinoConnection(host="127.0.0.1", port=1999)
     try:
-        # Just log that we're starting up
-        logger.info("RhinoMCP server starting up")
-        
-        # Try to connect to Rhino on startup to verify it's available
-        try:
-            # This will initialize the global connection if needed
-            rhino = get_rhino_connection()
-            logger.info("Successfully connected to Rhino on startup")
-        except Exception as e:
-            logger.warning(f"Could not connect to Rhino on startup: {str(e)}")
-            logger.warning("Make sure the Rhino addon is running before using Rhino resources or tools")
-        
-        # Return an empty context - we're using the global connection
-        yield {}
+        await connection.connect()
+        _global_rhino_connection = connection
+        logger.info("RhinoMCP server started up and connected to Rhino.")
+        yield
     finally:
-        # Clean up the global connection on shutdown
-        global _rhino_connection
-        if _rhino_connection:
+        if _global_rhino_connection:
             logger.info("Disconnecting from Rhino on shutdown")
-            _rhino_connection.disconnect()
-            _rhino_connection = None
+            _global_rhino_connection.disconnect()
+            _global_rhino_connection = None
         logger.info("RhinoMCP server shut down")
+
 
 # Create the MCP server with lifespan support
 mcp = FastMCP(
@@ -225,23 +247,12 @@ mcp = FastMCP(
 
 # Resource endpoints
 
-# Global connection for resources (since resources can't access context)
-_rhino_connection = None
-
-def get_rhino_connection():
-    """Get or create a persistent Rhino connection"""
-    global _rhino_connection
-    
-    # Create a new connection if needed
-    if _rhino_connection is None:
-        _rhino_connection = RhinoConnection(host="127.0.0.1", port=1999)
-        if not _rhino_connection.connect():
-            logger.error("Failed to connect to Rhino")
-            _rhino_connection = None
-            raise Exception("Could not connect to Rhino. Make sure the Rhino addon is running.")
-        logger.info("Created new persistent connection to Rhino")
-    
-    return _rhino_connection
+def get_rhino_connection(ctx: Context) -> RhinoConnection:
+    """Get the persistent Rhino connection from the global state."""
+    global _global_rhino_connection
+    if _global_rhino_connection is None:
+        raise ConnectionError("Rhino connection not initialized")
+    return _global_rhino_connection
 
 # Main execution
 def main():

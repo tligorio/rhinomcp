@@ -5,7 +5,7 @@ from typing import Any, List, Dict
 
 
 @mcp.tool()
-def select_objects(
+async def select_objects(
     ctx: Context,
     filters: Dict[str, List[Any]] = {},
     filters_type: str = "and",
@@ -41,13 +41,13 @@ def select_objects(
     """
     try:
         # Get the global connection
-        rhino = get_rhino_connection()
+        rhino = get_rhino_connection(ctx)
         command_params = {
             "filters": filters,
             "filters_type": filters_type
         }
 
-        result = rhino.send_command("select_objects", command_params)
+        result = await rhino.send_command("select_objects", command_params)
           
         return f"Selected {result['count']} objects"
     except Exception as e:

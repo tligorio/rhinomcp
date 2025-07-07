@@ -5,7 +5,7 @@ from typing import Any, List, Dict
 
 
 @mcp.tool()
-def execute_rhinoscript_python_code(ctx: Context, code: str) -> Dict[str, Any]:
+async def execute_rhinoscript_python_code(ctx: Context, code: str) -> Dict[str, Any]:
     """
     Execute arbitrary RhinoScript code in Rhino.
     
@@ -32,9 +32,9 @@ def execute_rhinoscript_python_code(ctx: Context, code: str) -> Dict[str, Any]:
     """
     try:
         # Get the global connection
-        rhino = get_rhino_connection()
+        rhino = get_rhino_connection(ctx)
         
-        return rhino.send_command("execute_rhinoscript_python_code", {"code": code})
+        return await rhino.send_command("execute_rhinoscript_python_code", {"code": code})
 
     except Exception as e:
         logger.error(f"Error executing code: {str(e)}")

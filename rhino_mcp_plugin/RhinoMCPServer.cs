@@ -33,6 +33,7 @@ namespace RhinoMCPPlugin
         private Thread serverThread;
         private readonly object lockObject = new object();
         private RhinoMCPFunctions handler;
+        private TcpClient client;
 
         public RhinoMCPServer(string host = "127.0.0.1", int port = 1999)
         {
@@ -69,6 +70,9 @@ namespace RhinoMCPPlugin
                 serverThread = new Thread(ServerLoop);
                 serverThread.IsBackground = true;
                 serverThread.Start();
+
+                RhinoDoc.AddRhinoObject += OnRhinoObjectAdded;
+                RhinoDoc.DeleteRhinoObject += OnRhinoObjectDeleted;
 
                 RhinoApp.WriteLine($"RhinoMCP server started on {host}:{port}");
             }
@@ -114,7 +118,64 @@ namespace RhinoMCPPlugin
                 serverThread = null;
             }
 
+            RhinoDoc.AddRhinoObject -= OnRhinoObjectAdded;
+            RhinoDoc.DeleteRhinoObject -= OnRhinoObjectDeleted;
+
             RhinoApp.WriteLine("RhinoMCP server stopped");
+        }
+
+        private void OnRhinoObjectAdded(object sender, RhinoObjectEventArgs e)
+        {
+            if (client == null || !client.Connected) return;
+
+            var rhinoObject = e.TheObject;
+            var serializedObject = Serializer.RhinoObject(rhinoObject);
+
+            var message = new JObject
+            {
+                ["type"] = "event",
+                ["event"] = "object_created",
+                ["data"] = serializedObject
+            };
+
+            try
+            {
+                var stream = client.GetStream();
+                var responseBytes = Encoding.UTF8.GetBytes(message.ToString(Formatting.None));
+                stream.Write(responseBytes, 0, responseBytes.Length);
+            }
+            catch (Exception ex)
+            {
+                RhinoApp.WriteLine($"Failed to send object creation event: {ex.Message}");
+            }
+        }
+
+        private void OnRhinoObjectDeleted(object sender, RhinoObjectEventArgs e)
+        {
+            if (client == null || !client.Connected) return;
+
+            var rhinoObject = e.TheObject;
+            var message = new JObject
+            {
+                ["type"] = "event",
+                ["event"] = "object_deleted",
+                ["data"] = new JObject
+                {
+                    ["id"] = rhinoObject.Id.ToString(),
+                    ["name"] = rhinoObject.Name
+                }
+            };
+
+            try
+            {
+                var stream = client.GetStream();
+                var responseBytes = Encoding.UTF8.GetBytes(message.ToString(Formatting.None));
+                stream.Write(responseBytes, 0, responseBytes.Length);
+            }
+            catch (Exception ex)
+            {
+                RhinoApp.WriteLine($"Failed to send object deletion event: {ex.Message}");
+            }
         }
 
         private void ServerLoop()
@@ -132,7 +193,7 @@ namespace RhinoMCPPlugin
                     // Wait for client connection
                     if (listener.Pending())
                     {
-                        TcpClient client = listener.AcceptTcpClient();
+                        this.client = listener.AcceptTcpClient();
                         RhinoApp.WriteLine($"Connected to client: {client.Client.RemoteEndPoint}");
 
                         // Handle client in a separate thread
@@ -282,11 +343,17 @@ namespace RhinoMCPPlugin
             try
             {
                 string cmdType = command["type"]?.ToString();
+                string requestId = command["request_id"]?.ToString();
                 JObject parameters = command["params"] as JObject ?? new JObject();
 
                 RhinoApp.WriteLine($"Executing command: {cmdType}");
 
                 JObject result = ExecuteCommandInternal(cmdType, parameters);
+
+                if (requestId != null)
+                {
+                    result["request_id"] = requestId;
+                }
 
                 RhinoApp.WriteLine("Command execution complete");
                 return result;

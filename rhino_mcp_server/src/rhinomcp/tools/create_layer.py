@@ -4,7 +4,7 @@ from rhinomcp.server import get_rhino_connection, mcp, logger
 from typing import Any, List, Dict
 
 @mcp.tool()
-def create_layer(
+async def create_layer(
     ctx: Context,
     name: str = None,
     color: List[int]= None,
@@ -28,7 +28,7 @@ def create_layer(
     """
     try:
         # Get the global connection
-        rhino = get_rhino_connection()
+        rhino = get_rhino_connection(ctx)
 
         command_params = {
             "name": name
@@ -38,7 +38,7 @@ def create_layer(
         if parent is not None: command_params["parent"] = parent
 
         # Create the layer
-        result = rhino.send_command("create_layer", command_params)  
+        result = await rhino.send_command("create_layer", command_params)
         
         return f"Created layer: {result['name']}"
     except Exception as e:

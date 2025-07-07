@@ -133,13 +133,41 @@ public partial class RhinoMCPFunctions
                 rhinoObject.Attributes.ObjectColor = Color.FromArgb(color[0], color[1], color[2]);
             }
             doc.Objects.ModifyAttributes(rhinoObject, rhinoObject.Attributes, true);
+
+            var geometry = rhinoObject.Geometry;
+            var xform = Transform.Identity;
+            bool geometryModified = false;
+
+            // Change translation if provided
+            if (parameters["translation"] != null)
+            {
+                xform *= applyTranslation(parameters);
+                geometryModified = true;
+            }
+
+            // Apply scale if provided
+            if (parameters["scale"] != null)
+            {
+                xform *= applyScale(parameters, geometry);
+                geometryModified = true;
+            }
+
+            // Apply rotation if provided
+            if (parameters["rotation"] != null)
+            {
+                xform *= applyRotation(parameters, geometry);
+                geometryModified = true;
+            }
+
+            if (geometryModified)
+            {
+                doc.Objects.Transform(rhinoObject, xform, true);
+            }
         }
 
         // Update views
         doc.Views.Redraw();
 
-        // apply modification
-        parameters["id"] = objectId;
-        return ModifyObject(parameters);
+        return Serializer.RhinoObject(doc.Objects.Find(objectId));
     }
 }

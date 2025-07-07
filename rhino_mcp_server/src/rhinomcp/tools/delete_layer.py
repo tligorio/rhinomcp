@@ -4,7 +4,7 @@ from rhinomcp.server import get_rhino_connection, mcp, logger
 from typing import Any, List, Dict
 
 @mcp.tool()
-def delete_layer(
+async def delete_layer(
     ctx: Context,
     guid: str = None,
     name: str = None
@@ -28,7 +28,7 @@ def delete_layer(
     """
     try:
         # Get the global connection
-        rhino = get_rhino_connection()
+        rhino = get_rhino_connection(ctx)
 
         command_params = {}
 
@@ -38,7 +38,7 @@ def delete_layer(
             command_params["guid"] = guid
 
         # Create the layer
-        result = rhino.send_command("delete_layer", command_params)
+        result = await rhino.send_command("delete_layer", command_params)
 
         return result["message"]
     except Exception as e:

@@ -4,7 +4,7 @@ from rhinomcp.server import get_rhino_connection, mcp, logger
 from typing import Any, List, Dict
 
 @mcp.tool()
-def create_object(
+async def create_object(
     ctx: Context,
     type: str = "BOX",
     name: str = None,
@@ -99,7 +99,7 @@ def create_object(
     """
     try:
         # Get the global connection
-        rhino = get_rhino_connection()
+        rhino = get_rhino_connection(ctx)
 
         command_params = {
             "type": type,
@@ -114,9 +114,12 @@ def create_object(
         if color: command_params["color"] = color
 
         # Create the object
-        result = result = rhino.send_command("create_object", command_params)  
+        result = await rhino.send_command("create_object", command_params)
         
-        return f"Created {type} object: {result['name']}"
+        if 'name' in result:
+            return f"Created {type} object: {result['name']}"
+        else:
+            return f"Created {type} object: {name}"
     except Exception as e:
         logger.error(f"Error creating object: {str(e)}")
         return f"Error creating object: {str(e)}"

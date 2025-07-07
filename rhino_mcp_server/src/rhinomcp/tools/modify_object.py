@@ -5,7 +5,7 @@ from typing import Any, List, Dict
 
 
 @mcp.tool()
-def modify_object(
+async def modify_object(
     ctx: Context,
     id: str = None,
     name: str = None,
@@ -31,7 +31,7 @@ def modify_object(
     """
     try:
         # Get the global connection
-        rhino = get_rhino_connection()
+        rhino = get_rhino_connection(ctx)
         
         params : Dict[str, Any] = {}
         
@@ -52,7 +52,7 @@ def modify_object(
         if visible is not None:
             params["visible"] = visible
             
-        result = rhino.send_command("modify_object", params)
+        result = await rhino.send_command("modify_object", params)
         return f"Modified object: {result['name']}"
     except Exception as e:
         logger.error(f"Error modifying object: {str(e)}")

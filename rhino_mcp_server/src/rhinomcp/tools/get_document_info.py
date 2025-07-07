@@ -3,11 +3,11 @@ import json
 from rhinomcp import get_rhino_connection, mcp, logger
 
 @mcp.tool()
-def get_document_info(ctx: Context) -> str:
+async def get_document_info(ctx: Context) -> str:
     """Get detailed information about the current Rhino document"""
     try:
-        rhino = get_rhino_connection()
-        result = rhino.send_command("get_document_info")
+        rhino = get_rhino_connection(ctx)
+        result = await rhino.send_command("get_document_info")
         
         # Just return the JSON representation of what Rhino sent us
         return json.dumps(result, indent=2)

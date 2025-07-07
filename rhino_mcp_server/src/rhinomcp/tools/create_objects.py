@@ -5,7 +5,7 @@ from typing import Any, List, Dict
 
 
 @mcp.tool()
-def create_objects(
+async def create_objects(
     ctx: Context,
     objects: List[Dict[str, Any]]
 ) -> str:
@@ -71,11 +71,9 @@ def create_objects(
     """
     try:
         # Get the global connection
-        rhino = get_rhino_connection()
-        command_params = {}
-        for obj in objects:
-            command_params[obj["name"]] = obj
-        result = rhino.send_command("create_objects", command_params)
+        rhino = get_rhino_connection(ctx)
+        command_params = {"objects": objects}
+        result = await rhino.send_command("create_objects", command_params)
   
         
         return f"Created {len(result)} objects"

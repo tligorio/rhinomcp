@@ -5,7 +5,7 @@ from typing import Any, List, Dict
 
 
 @mcp.tool()
-def modify_objects(
+async def modify_objects(
     ctx: Context,
     objects: List[Dict[str, Any]],
     all: bool = None
@@ -30,12 +30,12 @@ def modify_objects(
     """
     try:
         # Get the global connection
-        rhino = get_rhino_connection()
+        rhino = get_rhino_connection(ctx)
         command_params = {}
         command_params["objects"] = objects
         if all:
             command_params["all"] = all
-        result = rhino.send_command("modify_objects", command_params)
+        result = await rhino.send_command("modify_objects", command_params)
   
         
         return f"Modified {result['modified']} objects"
