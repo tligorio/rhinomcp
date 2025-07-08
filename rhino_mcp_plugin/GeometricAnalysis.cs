@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Rhino;
 using Rhino.Geometry;
 using Newtonsoft.Json.Linq;
 using rhinomcp.Serializers;
@@ -84,62 +85,108 @@ namespace RhinoMCPPlugin
         /// </summary>
         private static JObject AnalyzeExtrusion(Extrusion extrusion)
         {
-            // Check if the profile curve is a circle (cylinder or cone)
-            var profile = extrusion.Profile3d(new ComponentIndex(ComponentIndexType.BrepEdge, 0));
+            // Get the profile curve - use a simpler approach
+            Curve profile = null;
+            try
+            {
+                // Try to get the profile using Profile3d
+                profile = extrusion.Profile3d(new ComponentIndex(ComponentIndexType.ExtrusionBottomProfile, 0));
+                
+                // If that doesn't work, try with different ComponentIndex
+                if (profile == null)
+                {
+                    profile = extrusion.Profile3d(new ComponentIndex(ComponentIndexType.ExtrusionTopProfile, 0));
+                }
+            }
+            catch (Exception)
+            {
+                // Ignore profile extraction errors
+            }
             
             if (profile != null)
             {
-                // Try to get circle from the profile
+                // Try to get circle from the profile (cylinder)
                 Circle circle;
                 if (profile.TryGetCircle(out circle, TOLERANCE))
                 {
-                                         // This is likely a cylinder
-                     var pathLine = new Line(extrusion.PathStart, extrusion.PathEnd);
-                     var height = pathLine.Length;
-                     var axis = pathLine.Direction;
+                    // This is a cylinder
+                    var pathLine = new Line(extrusion.PathStart, extrusion.PathEnd);
+                    var height = pathLine.Length;
+                    var axis = pathLine.Direction;
                     
-                    return new JObject
+                    // Calculate rotation from axis
+                    var rotation = CalculateRotationFromAxis(axis);
+                    
+                    // Calculate base center (at the lower Z level)
+                    var baseCenterPoint = new Point3d(
+                        circle.Center.X,
+                        circle.Center.Y,
+                        Math.Min(extrusion.PathStart.Z, extrusion.PathEnd.Z)
+                    );
+                    
+                    var result = new JObject
                     {
                         ["type"] = "CYLINDER",
                         ["params"] = new JObject
                         {
-                            ["center"] = Serializer.SerializePoint(circle.Center),
                             ["radius"] = Math.Round(circle.Radius, 3),
                             ["height"] = Math.Round(height, 3),
-                                                         ["axis"] = Serializer.SerializePoint(new Point3d(axis))
+                            ["cap"] = true
                         }
                     };
+                    
+                    // Add base center as translation
+                    result["translation"] = Serializer.SerializePoint(baseCenterPoint);
+                    
+                    // Add rotation if needed
+                    if (rotation != null)
+                    {
+                        result["rotation"] = rotation;
+                    }
+                    
+                    return result;
                 }
 
-                                 // Check if it's rectangular for box detection
-                 if (profile.IsClosed && profile.IsPolyline())
-                 {
-                     Polyline polyline;
-                     if (profile.TryGetPolyline(out polyline) && polyline.Count == 5) // Rectangle has 5 points (closed)
-                     {
-                         var pathLine = new Line(extrusion.PathStart, extrusion.PathEnd);
-                         var height = pathLine.Length;
-                         
-                         // Calculate dimensions from polyline
-                         var side1 = polyline[0].DistanceTo(polyline[1]);
-                         var side2 = polyline[1].DistanceTo(polyline[2]);
-                         var center = extrusion.PathStart + (extrusion.PathEnd - extrusion.PathStart) * 0.5;
-                         
-                         return new JObject
-                         {
-                             ["type"] = "BOX",
-                             ["params"] = new JObject
-                             {
-                                 ["center"] = Serializer.SerializePoint(center),
-                                 ["width"] = Math.Round(side1, 3),
-                                 ["length"] = Math.Round(side2, 3),
-                                 ["height"] = Math.Round(height, 3)
-                             }
-                         };
-                     }
-                 }
+                // Check if it's rectangular for box detection
+                if (profile.IsClosed && profile.IsPolyline())
+                {
+                    Polyline polyline;
+                    if (profile.TryGetPolyline(out polyline) && polyline.Count == 5) // Rectangle has 5 points (closed)
+                    {
+                        var pathLine = new Line(extrusion.PathStart, extrusion.PathEnd);
+                        var height = pathLine.Length;
+                        
+                        // Calculate dimensions from polyline
+                        var side1 = polyline[0].DistanceTo(polyline[1]);
+                        var side2 = polyline[1].DistanceTo(polyline[2]);
+                        
+                        // Calculate base center (center of profile at base level)
+                        var profileCenter = polyline.CenterPoint();
+                        var baseCenterPoint = new Point3d(
+                            profileCenter.X,
+                            profileCenter.Y,
+                            Math.Min(extrusion.PathStart.Z, extrusion.PathEnd.Z)
+                        );
+                        
+                        var result = new JObject
+                        {
+                            ["type"] = "BOX",
+                            ["params"] = new JObject
+                            {
+                                ["width"] = Math.Round(side1, 3),
+                                ["length"] = Math.Round(side2, 3),
+                                ["height"] = Math.Round(height, 3)
+                            }
+                        };
+                        
+                        // Add base center as translation  
+                        result["translation"] = Serializer.SerializePoint(baseCenterPoint);
+                        
+                        return result;
+                    }
+                }
             }
-
+            
             return null;
         }
 

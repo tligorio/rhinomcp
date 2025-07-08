@@ -128,28 +128,35 @@ namespace RhinoMCPPlugin
         {
             if (client == null || !client.Connected) return;
 
-            var rhinoObject = e.TheObject;
-            var baseObjectInfo = Serializer.RhinoObject(rhinoObject);
-            
-            // Enhance with geometric analysis
-            var enhancedObjectInfo = GeometricAnalysis.AnalyzeGeometry(rhinoObject.Geometry, baseObjectInfo);
-
-            var message = new JObject
-            {
-                ["type"] = "event",
-                ["event"] = "object_created",
-                ["data"] = enhancedObjectInfo
-            };
-
             try
             {
-                var stream = client.GetStream();
-                var responseBytes = Encoding.UTF8.GetBytes(message.ToString(Formatting.None));
-                stream.Write(responseBytes, 0, responseBytes.Length);
+                var rhinoObject = e.TheObject;
+                var baseObjectInfo = Serializer.RhinoObject(rhinoObject);
+                
+                // Enhance with geometric analysis
+                var enhancedObjectInfo = GeometricAnalysis.AnalyzeGeometry(rhinoObject.Geometry, baseObjectInfo);
+
+                var message = new JObject
+                {
+                    ["type"] = "event",
+                    ["event"] = "object_created",
+                    ["data"] = enhancedObjectInfo
+                };
+
+                try
+                {
+                    var stream = client.GetStream();
+                    var responseBytes = Encoding.UTF8.GetBytes(message.ToString(Formatting.None));
+                    stream.Write(responseBytes, 0, responseBytes.Length);
+                }
+                catch (Exception ex)
+                {
+                    RhinoApp.WriteLine($"Failed to send object creation event: {ex.Message}");
+                }
             }
             catch (Exception ex)
             {
-                RhinoApp.WriteLine($"Failed to send object creation event: {ex.Message}");
+                RhinoApp.WriteLine($"Exception in OnRhinoObjectAdded: {ex.Message}");
             }
         }
 

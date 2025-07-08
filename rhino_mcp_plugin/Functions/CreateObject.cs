@@ -75,11 +75,14 @@ public partial class RhinoMCPFunctions
                 double length = castToDouble(geoParams.SelectToken("length"));
                 double height = castToDouble(geoParams.SelectToken("height"));
                 double xSize = width, ySize = length, zSize = height;
+                
+                // Create box with BASE CENTER at origin (for proper translation)
+                // Our detection sends base center, so box should have bottom at Z=0
                 Box box = new Box(
                     Plane.WorldXY,
-                    new Interval(-xSize / 2, xSize / 2),
-                    new Interval(-ySize / 2, ySize / 2),
-                    new Interval(-zSize / 2, zSize / 2)
+                    new Interval(-xSize / 2, xSize / 2),  // Center X
+                    new Interval(-ySize / 2, ySize / 2),  // Center Y  
+                    new Interval(0, zSize)                // Base at Z=0, top at Z=height
                 );
                 objectId = doc.Objects.AddBox(box);
                 break;
@@ -105,28 +108,16 @@ public partial class RhinoMCPFunctions
                 var baseCenterPlane = new Plane(new Point3d(0, 0, coneHeight), -Vector3d.ZAxis);
                 Cone cone = new Cone(baseCenterPlane, coneHeight, coneRadius);
                 
-                // DEBUG: Verify the fix
-                RhinoApp.WriteLine($"=== FIXED CONE CREATION DEBUG ===");
-                RhinoApp.WriteLine($"Requested: radius={coneRadius}, height={coneHeight}");
-                RhinoApp.WriteLine($"Fixed Cone.ApexPoint: {cone.ApexPoint}");
-                RhinoApp.WriteLine($"Fixed Cone.BasePoint: {cone.BasePoint}");
-                if (cone.ApexPoint.Z > cone.BasePoint.Z)
-                    RhinoApp.WriteLine("FIXED: Creates UPWARD pointing cone");
-                else if (cone.ApexPoint.Z < cone.BasePoint.Z)  
-                    RhinoApp.WriteLine("FIXED: Creates DOWNWARD pointing cone");
-                else
-                    RhinoApp.WriteLine("FIXED: Creates HORIZONTAL cone");
-                
                 Brep brep = Brep.CreateFromCone(cone, coneCap);
-                var bbox = brep.GetBoundingBox(true);
-                RhinoApp.WriteLine($"Fixed Pre-translation BoundingBox: {bbox.Min} to {bbox.Max}");
                 objectId = doc.Objects.AddBrep(brep);
-                RhinoApp.WriteLine($"=== END FIXED CONE DEBUG ===");
                 break;
             case "CYLINDER":
                 double cylinderRadius = castToDouble(geoParams.SelectToken("radius"));
                 double cylinderHeight = castToDouble(geoParams.SelectToken("height"));
                 bool cylinderCap = castToBool(geoParams.SelectToken("cap"));
+                
+                // Create cylinder with BASE CENTER at origin (for proper translation)
+                // Our detection sends base center, so cylinder base should be at Z=0
                 Circle cylinderCircle = new Circle(Plane.WorldXY, cylinderRadius);
                 Cylinder cylinder = new Cylinder(cylinderCircle, cylinderHeight);
                 objectId = doc.Objects.AddBrep(cylinder.ToBrep(cylinderCap, cylinderCap));
