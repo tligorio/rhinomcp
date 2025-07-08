@@ -96,9 +96,32 @@ public partial class RhinoMCPFunctions
                 double coneRadius = castToDouble(geoParams.SelectToken("radius"));
                 double coneHeight = castToDouble(geoParams.SelectToken("height"));
                 bool coneCap = castToBool(geoParams.SelectToken("cap"));
-                Cone cone = new Cone(Plane.WorldXY, coneHeight, coneRadius);
+                
+                // Create UPWARD pointing cone with BASE CENTER at origin (for proper translation)
+                // RhinoCommon puts apex at plane origin, base at plane_origin + height * plane_normal
+                // For base at origin and apex above: plane_origin + height * plane_normal = origin
+                // So: plane_origin = -height * plane_normal
+                // For upward cone: plane_normal = (0,0,-1), so plane_origin = (0,0,height)
+                var baseCenterPlane = new Plane(new Point3d(0, 0, coneHeight), -Vector3d.ZAxis);
+                Cone cone = new Cone(baseCenterPlane, coneHeight, coneRadius);
+                
+                // DEBUG: Verify the fix
+                RhinoApp.WriteLine($"=== FIXED CONE CREATION DEBUG ===");
+                RhinoApp.WriteLine($"Requested: radius={coneRadius}, height={coneHeight}");
+                RhinoApp.WriteLine($"Fixed Cone.ApexPoint: {cone.ApexPoint}");
+                RhinoApp.WriteLine($"Fixed Cone.BasePoint: {cone.BasePoint}");
+                if (cone.ApexPoint.Z > cone.BasePoint.Z)
+                    RhinoApp.WriteLine("FIXED: Creates UPWARD pointing cone");
+                else if (cone.ApexPoint.Z < cone.BasePoint.Z)  
+                    RhinoApp.WriteLine("FIXED: Creates DOWNWARD pointing cone");
+                else
+                    RhinoApp.WriteLine("FIXED: Creates HORIZONTAL cone");
+                
                 Brep brep = Brep.CreateFromCone(cone, coneCap);
+                var bbox = brep.GetBoundingBox(true);
+                RhinoApp.WriteLine($"Fixed Pre-translation BoundingBox: {bbox.Min} to {bbox.Max}");
                 objectId = doc.Objects.AddBrep(brep);
+                RhinoApp.WriteLine($"=== END FIXED CONE DEBUG ===");
                 break;
             case "CYLINDER":
                 double cylinderRadius = castToDouble(geoParams.SelectToken("radius"));

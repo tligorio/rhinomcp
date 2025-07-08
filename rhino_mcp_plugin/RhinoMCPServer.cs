@@ -129,13 +129,16 @@ namespace RhinoMCPPlugin
             if (client == null || !client.Connected) return;
 
             var rhinoObject = e.TheObject;
-            var serializedObject = Serializer.RhinoObject(rhinoObject);
+            var baseObjectInfo = Serializer.RhinoObject(rhinoObject);
+            
+            // Enhance with geometric analysis
+            var enhancedObjectInfo = GeometricAnalysis.AnalyzeGeometry(rhinoObject.Geometry, baseObjectInfo);
 
             var message = new JObject
             {
                 ["type"] = "event",
                 ["event"] = "object_created",
-                ["data"] = serializedObject
+                ["data"] = enhancedObjectInfo
             };
 
             try
